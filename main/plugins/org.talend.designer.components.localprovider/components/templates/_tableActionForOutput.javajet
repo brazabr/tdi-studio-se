@@ -14,7 +14,9 @@ if (!isParallelize) {
 	if("VECTORWISE".equalsIgnoreCase(dbmsId)) {
 		ending="WITH STRUCTURE = VECTORWISE";
 	}
-
+	
+	boolean useCascade = "true".equals(ElementParameterParser.getValue(node,"__USE_CASCADE__"));
+	
 	if(!("NONE").equals(tableAction)) {
 
         if(("DROP_CREATE").equals(tableAction)) {
@@ -23,7 +25,7 @@ if (!isParallelize) {
         	<%if(isLog4jEnabled_tableAction){%>
 				log.info("<%=cid%> - Droping table '" + tableName_<%=cid%> + "'.");
 			<%}%>
-            stmtDrop_<%=cid%>.execute("<%=manager.getDropTableSQL()%>");
+            stmtDrop_<%=cid%>.execute("<%=manager.getDropTableSQL()%>" <%=(useCascade ? " + \" cascade\"" : "")%>);
         	<%if(isLog4jEnabled_tableAction){%>
 				log.info("<%=cid%> - Drop table '" + tableName_<%=cid%> + "' has succeeded.");
 			<%}%>
@@ -181,7 +183,7 @@ if (!isParallelize) {
 	            }
 	            rsTable_<%=cid%>.close();
 <%
-			} else if ( GREENPLUM.equalsIgnoreCase(dbmsId) || POSTGRESQL.equalsIgnoreCase(dbmsId) || POSTGREPLUS.equalsIgnoreCase(dbmsId)) {
+    		} else if (GREENPLUM.equalsIgnoreCase(dbmsId) || POSTGRESQL.equalsIgnoreCase(dbmsId) || POSTGREPLUS.equalsIgnoreCase(dbmsId) || VERTICA.equalsIgnoreCase(dbmsId)) {
 %>  	            
 				java.sql.DatabaseMetaData dbMetaData_<%=cid%> = conn_<%=cid%>.getMetaData();
 	            java.sql.ResultSet rsTable_<%=cid%> = dbMetaData_<%=cid%>.getTables(null, null, null, new String[]{"TABLE"});
@@ -260,7 +262,7 @@ if (!isParallelize) {
 	    	    	<%if(isLog4jEnabled_tableAction){%>
 						log.info("<%=cid%> - Droping table '" + tableName_<%=cid%> + "'.");
 					<%}%>
-                    stmtDrop_<%=cid%>.execute("<%=manager.getDropTableSQL()%>");
+                    stmtDrop_<%=cid%>.execute("<%=manager.getDropTableSQL()%>" <%=(useCascade ? " + \" cascade\"" : "")%>);
 	    	    	<%if(isLog4jEnabled_tableAction){%>
 						log.info("<%=cid%> - Drop table '" + tableName_<%=cid%>+ "' has succeeded.");
 					<%}%>
@@ -312,7 +314,7 @@ if (!isParallelize) {
     	   <%if(isLog4jEnabled_tableAction){%>
 					log.info("<%=cid%> - Clearing table '" + tableName_<%=cid%> + "'.");
 			<%}%>
-            stmtClear_<%=cid%>.executeUpdate("<%=manager.getDeleteTableSQL()%>");
+            deletedCount_<%=cid%> = deletedCount_<%=cid%> + stmtClear_<%=cid%>.executeUpdate("<%=manager.getDeleteTableSQL()%>");
    	    	<%if(isLog4jEnabled_tableAction){%>
 					log.info("<%=cid%>- Clear table '" + tableName_<%=cid%> + "' has succeeded.");
 			<%}%>
