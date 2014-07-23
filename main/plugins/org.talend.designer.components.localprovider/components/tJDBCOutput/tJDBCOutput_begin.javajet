@@ -13,10 +13,11 @@ imports="
 "
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode) codeGenArgument.getArgument();
+dbLog = new DBLogUtil(node);
 String cid = node.getUniqueName();
 String dbmsId = "JDBC";
 List<Map<String, String>> addCols =
@@ -34,6 +35,9 @@ String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
 boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
 String useBatchSize = ElementParameterParser.getValue(node,"__USE_BATCH_SIZE__");
 String batchSize=ElementParameterParser.getValue(node,"__BATCH_SIZE__");
+    
+dbLog.startWork();
+dbLog.logCompSetting();
 
 List<IMetadataColumn> columnList = getColumnList(node);
 List<Column> stmtStructure = null;
@@ -119,6 +123,7 @@ if(("true").equals(useExistingConn)){
 		}
 	<%
 	}
+	dbLog.conn().useExistConn("connection_"+cid+".getMetaData().getURL()", "connection_"+cid+".getMetaData().getUserName()");
 } else {
     %>
 	
@@ -134,7 +139,9 @@ if(("true").equals(useExistingConn)){
 		} else {
 	<%
 	}
-	%>
+	%
+	>
+			<%dbLog.conn().logJDBCDriver(dbLog.str("driverClass"));%>
 			java.lang.Class.forName(<%=driverClass %>);
 			String connectionString_<%=cid %> = <%=jdbcUrl %>;
 			
@@ -143,8 +150,9 @@ if(("true").equals(useExistingConn)){
             %>
             
             <%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>  			
-			
+			<%dbLog.conn().connTry(dbLog.var("connectionString"), dbuser);%>	
 			connection_<%=cid %> = java.sql.DriverManager.getConnection(connectionString_<%=cid %>, <%=dbuser %>, decryptedPassword_<%=cid%>);
+			<%dbLog.conn().connDone(dbLog.var("connectionString"));%>
 	<%
 	if(specify_alias){
 	%>
@@ -165,6 +173,7 @@ if(!("true").equals(useExistingConn)) {
         <%
     }
 }	
+dbLog.commit().logAutoCommit("connection_"+cid+".getAutoCommit()");
 %>
 <%
 if (("true").equals(useBatchSize)) {

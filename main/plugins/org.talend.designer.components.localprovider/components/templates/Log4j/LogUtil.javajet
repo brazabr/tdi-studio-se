@@ -1,0 +1,152 @@
+<%@jet%>
+
+<%
+class BasicLogUtil{
+	protected String cid  = "";
+	protected org.talend.core.model.process.INode node = null;
+	protected boolean log4jEnabled = false;
+	private String logID = "";
+	
+	private BasicLogUtil(){}
+	
+	public BasicLogUtil(org.talend.core.model.process.INode node){
+		this.node = node;
+		this.cid = this.node.getUniqueName();
+		this.log4jEnabled = ("true").equals(org.talend.core.model.process.ElementParameterParser.getValue(this.node.getProcess(), "__LOG4J_ACTIVATE__"));
+		this.logID = "\"" + this.cid + " - \"";
+	}
+	
+	public String var(String varName){
+		return varName + "_" + this.cid;
+	}
+	public String str(String content){
+		return "\"" + content + "\"";
+	}
+	
+	public void info(String... message){
+		log4j("info", message);
+	}
+	
+	public void debug(String... message){
+		log4j("debug", message);
+	}
+	
+	public void warn(String... message){
+		log4j("warn", message);
+	}
+	
+	public void error(String... message){
+		log4j("error", message);
+	}
+	
+	public void fatal(String... message){
+		log4j("fatal", message);
+	}
+	
+	public void trace(String... message){
+		log4j("trace", message);
+	}
+	
+	private void log4j(String level, String... messages){
+		if(this.log4jEnabled){
+		%>
+			log.<%=level%>(<%=logID%> <%for(String message : messages){%> + <%=message%> <%}%>);
+		<%
+		}
+	}
+}
+
+class LogUtil extends BasicLogUtil{
+	
+	private LogUtil(){
+	}
+	
+	public LogUtil(org.talend.core.model.process.INode node){
+		super(node);
+	}
+	
+	public void startWork(){
+		info(str("Start to work."));
+	}
+	
+	public void endWork(){
+		info(str("Done."));
+	}
+	
+	public void logIgnoredException(String exception){
+		warn(exception);
+	}
+	
+	public void logPrintedException(String exception){
+		error(exception);
+	}
+	
+	public void logException(String exception){
+		fatal(exception);
+	}
+	
+	public void logCompSetting(){
+    	if(log4jEnabled){
+    	%>
+    		StringBuilder <%=var("log4jParamters")%> = new StringBuilder();
+    	   	<%=var("log4jParamters")%>.append("Parameters:");
+    	   	<%
+    	   	java.util.Set<org.talend.core.model.process.EParameterFieldType> ignoredParamsTypes = new java.util.HashSet<org.talend.core.model.process.EParameterFieldType>(); 
+    	   	ignoredParamsTypes.addAll(
+    	   		java.util.Arrays.asList(
+    		   		org.talend.core.model.process.EParameterFieldType.SCHEMA_TYPE,
+    		   		org.talend.core.model.process.EParameterFieldType.LABEL,
+    		   		org.talend.core.model.process.EParameterFieldType.EXTERNAL,
+    		   		org.talend.core.model.process.EParameterFieldType.MAPPING_TYPE,
+    		   		org.talend.core.model.process.EParameterFieldType.IMAGE,
+    		   		org.talend.core.model.process.EParameterFieldType.PASSWORD)
+    	   	);
+       		for(org.talend.core.model.process.IElementParameter ep : org.talend.core.model.utils.NodeUtil.getDisplayedParameters(node)){
+       			if(ignoredParamsTypes.contains(ep.getFieldType())){
+       				continue;
+       			}
+       			String name = ep.getName();
+       			String value = org.talend.core.model.utils.NodeUtil.getNormalizeParameterValue(node, ep);
+       			%>
+    			<%=var("log4jParamters")%>.append("<%=name%>" + " = " + <%=value%>);
+    			<%=var("log4jParamters")%>.append(" | ");
+    		<%
+       		}
+    	}
+   		debug(var("log4jParamters"));
+    }
+    
+    public void traceData(String rowStruct, java.util.List<org.talend.core.model.metadata.IMetadataColumn> columnList, String nbline){
+    	if(log4jEnabled){
+    	%>
+        	StringBuilder <%=var("log4jSb")%> = new StringBuilder();	
+        	<%
+    		for(org.talend.core.model.metadata.IMetadataColumn column : columnList){
+    			org.talend.core.model.metadata.types.JavaType javaType = org.talend.core.model.metadata.types.JavaTypesManager.getJavaTypeFromId(column.getTalendType());
+    			String columnName = column.getLabel();
+    			boolean isPrimit = org.talend.core.model.metadata.types.JavaTypesManager.isJavaPrimitiveType(column.getTalendType(), column.isNullable());
+    			if(isPrimit){
+   				%>
+					<%=var("log4jSb")%>.append(<%=rowStruct%>.<%=columnName%>);
+				<%
+    			}else{
+    			%>
+    				if(<%=rowStruct%>.<%=columnName%> == null){
+    					<%=var("log4jSb")%>.append("<null>");
+    				}else{
+        				<%=var("log4jSb")%>.append(<%=rowStruct%>.<%=columnName%>);
+        			}	
+        		<%
+        		}
+        		%>
+    			<%=var("log4jSb")%>.append("|");
+    		<%
+    		}
+    	}
+		trace(str("Content of the record "), nbline, str(": "), var("log4jSb"));
+		%>
+	<%
+    }
+}
+LogUtil log = null;
+%>

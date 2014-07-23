@@ -16,11 +16,13 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	
 	String cid = node.getUniqueName();
+	dbLog = new DBLogUtil(node);
 	IProcess process = node.getProcess();
 	
 	String dbmsId = ElementParameterParser.getValue(node,"__MAPPING__");
@@ -342,9 +344,11 @@ skeleton="../templates/db_output_bulk.skeleton"
                 try {
                 		if (batchSizeCounter_<%=cid%> != 0) {
 							int countSum_<%=cid%> = 0;
+							<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 							for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 								countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : 1);
-							}                	
+							}         
+							<%dbLog.batch().executeDone(dbLog.str(dataAction));%>       	
 	            	    	<%if (("INSERT").equals(dataAction)) {
 	            	    	%>
 	            	    		insertedCount_<%=cid%> += countSum_<%=cid%>;
@@ -370,6 +374,7 @@ skeleton="../templates/db_output_bulk.skeleton"
 	    	    	<%
 	    	    	}
 	    	    	%> 
+    	    		<%dbLog.logPrintedException("e.getMessage()");%>
                 	System.err.println(e.getMessage());
                 	<%
                 	}%>
@@ -420,9 +425,11 @@ skeleton="../templates/db_output_bulk.skeleton"
     %>                
     try {
 			int countSum_<%=cid%> = 0;
+			<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 			for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 				countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : <%=("INSERT").equals(dataAction)? "1" : "countEach_" +cid%>);
 			}       	
+			<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
 	    	<%if (("INSERT").equals(dataAction)) {
 	    	%>
 	    		insertedCount_<%=cid%> += countSum_<%=cid%>; 
@@ -460,7 +467,8 @@ skeleton="../templates/db_output_bulk.skeleton"
     	deletedCount_<%=cid%> += countSum_<%=cid%>;
     	<%
     	}%>
-    	System.out.println(e.getMessage());
+		<%dbLog.logPrintedException("e.getMessage()");%>
+    	System.err.println(e.getMessage());
     	<%
     	}%>                	
 	}                                  
@@ -479,16 +487,21 @@ skeleton="../templates/db_output_bulk.skeleton"
 		if(!("").equals(commitEvery) && !("0").equals(commitEvery))
 		{
     		%>
+    		<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
     		conn_<%=cid%>.commit();
+    		<%dbLog.commit().commitDone(null);%>
     		<%
 		}
 	
 		commitEvery = "0";
     	%>	
+		<%dbLog.conn().closeTry(null);%>    	
     	conn_<%=cid%> .close();
+    	<%dbLog.conn().closeDone(null);%>
     	resourceMap.put("finish_<%=cid%>", true);
     	<%
 	}
     %>
 
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+<%dbLog.endWork();%>

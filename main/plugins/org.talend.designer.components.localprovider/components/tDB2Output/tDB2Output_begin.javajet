@@ -14,11 +14,14 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode)codeGenArgument.getArgument();	
 String cid = node.getUniqueName();	
+
+dbLog = new DBLogUtil(node);
+
 List<Map<String, String>> addCols = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__ADD_COLS__" );
 boolean useFieldOptions = ("true").equals(ElementParameterParser.getValue(node, "__USE_FIELD_OPTIONS__"));    
 List<Map<String, String>> fieldOptions = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__FIELD_OPTIONS__");    
@@ -36,6 +39,9 @@ boolean convertToUppercase = ("true").equals(ElementParameterParser.getValue(nod
 boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
 boolean useBatchSize = ("true").equals(ElementParameterParser.getValue(node,"__USE_BATCH_SIZE__"));
 String batchSize=ElementParameterParser.getValue(node,"__BATCH_SIZE__");
+
+dbLog.startWork();
+dbLog.logCompSetting();
 %>
 
 <%
@@ -123,6 +129,7 @@ if(("true").equals(useExistingConn)) {
     String dbschema_<%=cid%> = (String)globalMap.get("<%=tableschema%>");    
     java.sql.Connection conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
     String dbUser_<%=cid %> = (String)globalMap.get("<%=username%>");  
+    <%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
     <%
 } else {
 	String dbproperties = ElementParameterParser.getValue(node, "__PROPERTIES__");
@@ -137,6 +144,7 @@ if(("true").equals(useExistingConn)) {
 	}
 %>
     java.lang.Class.forName("com.ibm.db2.jcc.DB2Driver");    
+	<%dbLog.conn().logJDBCDriver(dbLog.str("com.ibm.db2.jcc.DB2Driver"));%>
     String dbUser_<%=cid %> = <%=dbuser%>;    
     <%
     String passwordFieldName = "__PASS__";
@@ -147,7 +155,9 @@ if(("true").equals(useExistingConn)) {
     String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
 
     String dbschema_<%=cid%> = <%=tableSchema%>;    
+    <%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
     java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+    <%dbLog.conn().connDone(dbLog.var("url"));%>
     resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
     <%
 }
@@ -160,6 +170,7 @@ if(!("true").equals(useExistingConn)) {
         <%
     }
 }
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 %>
 
 <%
@@ -172,7 +183,6 @@ if (useBatchSize) {
    }
 }
 %> 
-
 String tableName_<%=cid%> = null;
 if(dbschema_<%=cid%> == null || dbschema_<%=cid%>.trim().length() == 0) {
     tableName_<%=cid%> = <%=table%><%=convertToUppercase ? ".toUpperCase()" : ""%>;

@@ -14,12 +14,13 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
-	
 	String cid = node.getUniqueName();
+	
+	dbLog = new DBLogUtil(node);
 	
     List<Map<String, String>> addCols =
             (List<Map<String,String>>)ElementParameterParser.getObjectValue(
@@ -51,6 +52,9 @@ skeleton="../templates/db_output_bulk.skeleton"
 		
 	String useBatchSize = ElementParameterParser.getValue(node,"__USE_BATCH_SIZE__");
 	String batchSize=ElementParameterParser.getValue(node,"__BATCH_SIZE__");
+	
+    dbLog.startWork();
+    dbLog.logCompSetting();
 %>
 
 <%
@@ -130,6 +134,7 @@ if(("true").equals(useExistingConn)) {
     String conn = "conn_" + connection;
     %>
     java.sql.Connection conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
+    <%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
     <%
 } else {
     %>
@@ -150,10 +155,15 @@ if(("true").equals(useExistingConn)) {
     String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
     
     java.lang.Class.forName("com.ibm.as400.access.AS400JDBCDriver");
+    <%dbLog.conn().logJDBCDriver(dbLog.str("com.ibm.as400.access.AS400JDBCDriver"));%>
+    <%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>
     java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+    <%dbLog.conn().connDone(dbLog.var("url"));%>
+    
     resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
     <%
 }
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 String useCommitControl = ElementParameterParser.getValue(node,"__USE_COMMIT_CONTROL__");
 if(!("true").equals(useExistingConn)) {
     if(("true").equals(useCommitControl)) {// if use commit control

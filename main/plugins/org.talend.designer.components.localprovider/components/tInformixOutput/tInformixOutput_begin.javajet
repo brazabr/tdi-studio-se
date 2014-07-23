@@ -14,11 +14,14 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();	
 	String cid = node.getUniqueName();	
+	
+	dbLog = new DBLogUtil(node);
+	
     List<Map<String, String>> addCols =
             (List<Map<String,String>>)ElementParameterParser.getObjectValue(
                 node,"__ADD_COLS__" );
@@ -63,6 +66,8 @@ skeleton="../templates/db_output_bulk.skeleton"
 	
 	String tableSchema = ElementParameterParser.getValue(node,"__SCHEMA_DB__");
 	
+    dbLog.startWork();
+    dbLog.logCompSetting();
 %>
 int nb_line_<%=cid%> = 0;
 int nb_line_update_<%=cid%> = 0;
@@ -168,6 +173,7 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
 		}
 %>
 	java.lang.Class.forName("com.informix.jdbc.IfxDriver");
+	<%dbLog.conn().logJDBCDriver(dbLog.str("com.informix.jdbc.IfxDriver"));%>
 	dbschema_<%=cid%> = <%=tableSchema%>;	
 	String dbUser_<%=cid %> = <%=dbuser%>;
 	<%
@@ -177,8 +183,9 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
 	<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
 
 	String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
-
+	<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>
 	java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+	<%dbLog.conn().connDone(dbLog.var("url"));%>
 	resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
 
 <%
@@ -191,8 +198,9 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
 	    conn_<%=cid%>.setAutoCommit(false);
 	}
 <%
-}%>
-
+}
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
+%>
 if(dbschema_<%=cid%> == null || dbschema_<%=cid%>.trim().length() == 0) {
     tableName_<%=cid%> = <%=table%>;
 } else {

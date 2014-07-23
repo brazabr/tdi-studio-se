@@ -14,7 +14,6 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-<%@ include file="../templates/Log4j/Log4jDBConnUtil.javajet"%>
 <%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
@@ -64,6 +63,8 @@ skeleton="../templates/db_output_bulk.skeleton"
 	String dbschema = ElementParameterParser.getValue(node,"__SCHEMA_DB__");
 
    	String db_version = ElementParameterParser.getValue(node, "__DB_VERSION__");
+    dbLog.startWork();
+    dbLog.logCompSetting();
 %>
 
 int nb_line_<%=cid%> = 0;
@@ -143,6 +144,7 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
 			%>
 				dbschema_<%=cid%> = (String)globalMap.get("<%=schema%>");
 		        conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
+		        <%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
 		   <%
 		    } else {
 		   %>
@@ -150,15 +152,16 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
 			<%
 				if("VERTICA_7_0_X".equals(db_version) || "VERTICA_6_1_X".equals(db_version) || "VERTICA_6_0".equals(db_version) || "VERTICA_5_1".equals(db_version)){
 			%>
-	 				java.lang.Class.forName("com.vertica.jdbc.Driver");
+	 				String driverClass_<%=cid%> = "com.vertica.jdbc.Driver";
 			<%
 				}else{
 			%>
-					java.lang.Class.forName("com.vertica.Driver");
+					String driverClass_<%=cid%> = "com.vertica.Driver";
 			<%
 				}
 			%>
-			
+				java.lang.Class.forName(driverClass_<%=cid%>);
+        		<%dbLog.conn().logJDBCDriver(dbLog.var("driverClass"));%>
 				<%if(dbproperties == null || ("\"\"").equals(dbproperties) || ("").equals(dbproperties)) {%>
 				String url_<%=cid %> = "jdbc:vertica://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%>;
 				<%} else {%>
@@ -173,8 +176,9 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
 				<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
 
 				String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
-
+				<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
 				conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+				<%dbLog.conn().connDone(dbLog.var("url"));%>
 				resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
 			<%
 				}
@@ -196,6 +200,7 @@ int commitEvery_<%=cid%> = <%=commitEvery%>;
 int commitCounter_<%=cid%> = 0;        
 <%
 }
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 if (batchMode) {
     if(!("").equals(batchSize)&&!("0").equals(batchSize)) {
 %>

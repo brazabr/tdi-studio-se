@@ -7,13 +7,11 @@ imports="
 	java.util.List
 " 
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
-	
-	boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
-	
+	dbLog = new DBLogUtil(node);
 	String cid = node.getUniqueName();
 	
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
@@ -77,65 +75,19 @@ imports="
 		if(!("").equals(commitEvery) && !("0").equals(commitEvery))
 		{
 			%>
-			<%if(isLog4jEnabled){%>
-				log.info("<%=cid%> - Starting to commit " + commitCounter_<%=cid%> + " records.");
-			<%}%>
-				conn_<%=cid%>.commit();
-			<%if(isLog4jEnabled){%>
-				log.info("<%=cid%> - Commit has succeeded.");
-			<%}%>
+			<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
+		    conn_<%=cid%>.commit();
+			<%dbLog.commit().commitDone(null);%>
             <%
 		}
 		%>	
-	 	<%if(isLog4jEnabled){%>
-			log.info("<%=cid%> - Closing the connection to the database.");
-		<%}%>
-    	conn_<%=cid%> .close();
+    	<%dbLog.conn().closeTry(null);%>
+		conn_<%=cid%> .close();
+		<%dbLog.conn().closeDone(null);%>
     	resourceMap.put("finish_<%=cid%>", true);
-		<%if(isLog4jEnabled){%>
-			log.info("<%=cid%> - Connection to the database closed.");
-		<%}%>
     	<%
 	}
     %>
 
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
-
-	<%
-	if(isLog4jEnabled){
-		if(("INSERT").equals(dataAction) || ("UPDATE").equals(dataAction) || ("DELETE").equals(dataAction)) {
-    		if (("INSERT").equals(dataAction)) {
-	%>
-				log.info("<%=cid%> - Has inserted "+nb_line_inserted_<%=cid%> + " records.");
-	<%
-    		}else if (("UPDATE").equals(dataAction)) {
-	%>
-				log.info("<%=cid%> - Has updated "+nb_line_update_<%=cid%> + " records.");
-	<%
-    		}else if (("DELETE").equals(dataAction)) {
-	%>
-				log.info("<%=cid%> - Has deleted "+nb_line_deleted_<%=cid%> + " records.");
-	<%
-    		}
-    	}else if("UPDATE_OR_INSERT".equals(dataAction)){
-	%>
-			log.info("<%=cid%> - Has updated "+nb_line_update_<%=cid%> + " records.");
-			log.info("<%=cid%> - Has inserted "+nb_line_inserted_<%=cid%> + " records.");
-    <%
-    	}else if("INSERT_OR_UPDATE".equals(dataAction)){
-    %>
-			log.info("<%=cid%> - Has inserted "+nb_line_inserted_<%=cid%> + " records.");
-			log.info("<%=cid%> - Has updated "+nb_line_update_<%=cid%> + " records.");
-    
-    <%
-    	}
-    	if(rejectConnName != null) {
-	%>
-			log.info("<%=cid%> - Has rejected "+nb_line_rejected_<%=cid%> + " records.");
-	<%
-		}
-	%>
-		log.info("<%=cid%> - Done.");
-	<%
-	}
-	%>
+<%dbLog.endWork();%>

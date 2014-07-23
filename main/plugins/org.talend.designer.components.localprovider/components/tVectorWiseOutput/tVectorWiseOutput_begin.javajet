@@ -13,10 +13,11 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
-	INode node = (INode)codeGenArgument.getArgument();	
+	INode node = (INode)codeGenArgument.getArgument();
+	dbLog = new DBLogUtil(node);	
 	String cid = node.getUniqueName();	
 	String dbtypeDefinition = ElementParameterParser.getValue(node, "__TYPE__");    
     List<Map<String, String>> addCols =
@@ -51,6 +52,8 @@ skeleton="../templates/db_output_bulk.skeleton"
 	String batchSize=ElementParameterParser.getValue(node,"__BATCH_SIZE__");
 	
 	boolean isParallelize ="true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__PARALLELIZE__"));
+    dbLog.startWork();
+    dbLog.logCompSetting();
 %>
 
 int nb_line_<%=cid%> = 0;
@@ -120,10 +123,12 @@ if(useExistingConnection) {
 	String conn = "conn_" + connection;;
 	%>
 	java.sql.Connection conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
+	<%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
 	<%
 } else {
 	%>
 	java.lang.Class.forName("com.ingres.jdbc.IngresDriver");
+	<%dbLog.conn().logJDBCDriver(dbLog.str("com.ingres.jdbc.IngresDriver"));%>
 	String url_<%=cid %> = "jdbc:ingres://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%>;
 	String dbUser_<%=cid %> = <%=dbuser%>;
 	<%
@@ -134,11 +139,14 @@ if(useExistingConnection) {
 
 	String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
 
+	<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>		
 	java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+	<%dbLog.conn().connDone(dbLog.var("url"));%>
 	resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
 	conn_<%=cid%>.setAutoCommit(false);
 	<%
 }	
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 
 if (("true").equals(useBatchSize)) {
     if(!("").equals(batchSize)&&!("0").equals(batchSize)) {
@@ -148,7 +156,6 @@ if (("true").equals(useBatchSize)) {
 <%
    }
 }
-
 if(columnList != null && columnList.size() > 0) {    
     if(!isParallelize && !("NONE").equals(tableAction)) {
         Manager manager = getManager(dbmsId, cid);

@@ -13,11 +13,12 @@ imports="
 "
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode) codeGenArgument.getArgument();
 String cid = node.getUniqueName();
+dbLog = new DBLogUtil(node);
 String dbmsId = "JDBC";
 List<Map<String, String>> addCols =
 	(List<Map<String,String>>) ElementParameterParser.getObjectValue(node, "__ADD_COLS__");
@@ -35,7 +36,8 @@ boolean isEnableDebug = ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MOD
 boolean enableLibrefs = "true".equals(ElementParameterParser.getValue(node, "__ENABLE_LIBREFS__")); 
 String dbname = ElementParameterParser.getValue(node, "__DBNAME__");
 List<Map<String, String>> sasProps = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__JDBC_PARAMETERS__"); 
-
+dbLog.startWork();
+dbLog.logCompSetting();
 List<IMetadataColumn> columnList = getColumnList(node);
 List<Column> stmtStructure = null;
 if(columnList != null && columnList.size() > 0) {
@@ -95,10 +97,12 @@ if(useExistingConn.equals("true")){
 	String conn = "conn_" + connection;
 	%>
 	java.sql.Connection connection_<%=cid %> = (java.sql.Connection)globalMap.get("<%=conn %>");
+	<%dbLog.conn().useExistConn("connection_"+cid+".getMetaData().getURL()", "connection_"+cid+".getMetaData().getUserName()");%>
 	<%
 } else {       
     %>
     java.lang.Class.forName(<%=driverClass %>);
+    <%dbLog.conn().logJDBCDriver(driverClass);%>
     String connectionString_<%=cid %> = <%=jdbcUrl %>;
     String dbUser_<%=cid %> = <%=dbuser%>;
     
@@ -126,8 +130,9 @@ if(useExistingConn.equals("true")){
 		}
 	}
 	%>
-    
+    <%dbLog.conn().connTry(dbLog.var("connectionString"), dbLog.var("dbUser"));%>	
     java.sql.Connection connection_<%=cid %> = java.sql.DriverManager.getConnection(connectionString_<%=cid %>, property_<%=cid%>);
+	<%dbLog.conn().connDone(dbLog.var("connectionString"));%>    
 	resourceMap.put("conn_<%=cid%>", connection_<%=cid %>);
     <%
 }

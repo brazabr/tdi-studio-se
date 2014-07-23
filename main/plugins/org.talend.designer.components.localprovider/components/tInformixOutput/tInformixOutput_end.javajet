@@ -7,12 +7,13 @@ imports="
 	java.util.List
 " 
 %>
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	
 	String cid = node.getUniqueName();
-	
+	dbLog = new DBLogUtil(node);
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
 	
 	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
@@ -72,9 +73,11 @@ imports="
 				// when PreparedStatement execute "executeBatch" if have no any data to update that will throw "java.sql.SQLException: Method can be called only once."
 				if (pstmt_<%=cid %> != null && batchSizeCounter_<%=cid%> > 0) {
 					int countSum_<%=cid%> = 0;
+					<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 					for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 						countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
 					}
+					<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
 	    	    	<%
 	    	    	if (("INSERT").equals(dataAction)) {
 	    	    	%>
@@ -98,8 +101,9 @@ imports="
             		throw(e);
             	<%
             	}else {
+            	dbLog.logPrintedException("e.getMessage()");
             	%>
-            	System.out.println(e.getMessage());
+            	System.err.println(e.getMessage());
             	<%
             	}
             	%>                	
@@ -117,15 +121,20 @@ imports="
     }   
 if(useTransaction && !("").equals(commitEvery)&&!("0").equals(commitEvery)){
     %>
+		<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
         conn_<%=cid%>.commit();
+		<%dbLog.commit().commitDone(null);%>
     <%
 }
 if (!useExistingConnection) {
 	%>
+	<%dbLog.conn().closeTry(null);%>
 	conn_<%=cid%> .close();
+	<%dbLog.conn().closeDone(null);%>
 	resourceMap.put("finish_<%=cid%>", true);
 	<%
 }
 %>
 
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+<%dbLog.endWork();%>

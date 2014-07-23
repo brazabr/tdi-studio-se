@@ -5,12 +5,13 @@ imports="
 	org.talend.core.model.process.ElementParameterParser
 " 
 %>
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	
 	String cid = node.getUniqueName();
-	
+	dbLog = new DBLogUtil(node);
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
 	
 	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
@@ -66,14 +67,20 @@ imports="
             if(!commitEvery.equals("") && !commitEvery.equals("0")) {
                 %>
                 if(commitCounter_<%=cid%> > 0) {
+                	<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
                     conn_<%=cid%>.commit();
+                    <%dbLog.commit().commitDone(null);%>
                 }
                 <%
             }
         }
         %>  
+        <%dbLog.conn().closeTry(null);%>
         conn_<%=cid%> .close();
+        <%dbLog.conn().closeDone(null);%>
         resourceMap.put("finish_<%=cid%>", true);
         
 		int rejectedCount_<%=cid%> = 0; 
+		<%String rejectConnName = null;%>
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+<%dbLog.endWork();%>

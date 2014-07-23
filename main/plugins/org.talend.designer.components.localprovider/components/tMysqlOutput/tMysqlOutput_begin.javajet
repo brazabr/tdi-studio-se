@@ -16,13 +16,13 @@ imports="
 " 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-<%@ include file="../templates/Log4j/Log4jDBConnUtil.javajet"%>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
-	
 	String cid = node.getUniqueName();
+	
+	dbLog = new DBLogUtil(node);
 	
 	IProcess process = node.getProcess();
 	
@@ -55,11 +55,9 @@ skeleton="../templates/db_output_bulk.skeleton"
 	String tableAction = ElementParameterParser.getValue(node,"__TABLE_ACTION__");
 	
 	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
-
+    dbLog.startWork();
+    dbLog.logCompSetting();
 	boolean extendedInsert = false;
-	boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
-	log4jCodeGenerateUtil.infoComponentStart(node);
-	log4jCodeGenerateUtil.initDbDebugRowBuffer();	
 	
 	String dbVersion = "" ;
 	
@@ -114,9 +112,6 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
         %>
         int updateKeyCount_<%=cid%> = <%=updateKeyCount%>;
         if(updateKeyCount_<%=cid%> < 1) {
-			<%if(isLog4jEnabled){%>
-				log.fatal("<%=cid%> - For update ,Shcema must have a key");
-			<%}%>	
             throw new RuntimeException("For update, Schema must have a key");
         }
         <%
@@ -132,9 +127,6 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
         %>
         int deleteKeyCount_<%=cid%> = <%=deleteKeyCount%>;
         if(deleteKeyCount_<%=cid%> < 1) {
-			<%if(isLog4jEnabled){%>
-				log.fatal("<%=cid%> - For delete ,Shcema must have a key");
-			<%}%>	
             throw new RuntimeException("For delete, Schema must have a key");
         }
         <%
@@ -203,13 +195,7 @@ if(useExistingConnection) {
 	<%
 	}
 	%>
-	<%if(isLog4jEnabled){%>	
-		if(conn_<%=cid%> != null) {
-			if(conn_<%=cid%>.getMetaData() != null) {
-				log.info("<%=cid%> - Uses an existing connection as " + conn_<%=cid%>.getMetaData().getUserName() + ". Connection URL: " + conn_<%=cid%>.getMetaData().getURL() + ".");
-			}
-		}
-	<%}%>
+	<%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
 <%
 } else {
 %>
@@ -239,6 +225,7 @@ if(useExistingConnection) {
 			url_<%=cid%> = "jdbc:mysql://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%> + "?" + properties_<%=cid%>;
 		}
 		String driverClass_<%=cid%> = "org.gjt.mm.mysql.Driver";
+		<%dbLog.conn().logJDBCDriver(dbLog.var("driverClass"));%>
 		String dbUser_<%=cid %> = <%=dbuser%>;
 		<%
 		String passwordFieldName = "__PASS__";
@@ -248,16 +235,9 @@ if(useExistingConnection) {
 
 		String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
 		java.lang.Class.forName(driverClass_<%=cid%>);
-		<%
-	   		log4jCodeGenerateUtil.debugConnectionParams(node);	
-		%>	
-		<%if(isLog4jEnabled){%>
-			log.info("<%=cid%> - Connection attempt to '" + url_<%=cid%> + "' with the username '" + dbUser_<%=cid%> + "'.");
-		<%}%>	
+		<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
 		conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>, dbUser_<%=cid%>, dbPwd_<%=cid%>);
-		<%if(isLog4jEnabled){%>
-			log.info("<%=cid%> - Connection to '" + url_<%=cid%> + "' has succeeded.");
-		<%}%>
+		<%dbLog.conn().connDone(dbLog.var("url"));%>
 	<%
 	if(specify_alias){
 	%>
@@ -277,6 +257,7 @@ if(!useExistingConnection) {
         <%
     }
 }
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 %>
 <%
 if (useBatchSize && "MYSQL_5".equals(dbVersion) && (("UPDATE").equals(dataAction)||("DELETE").equals(dataAction))) {

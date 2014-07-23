@@ -16,11 +16,14 @@ imports="
 "
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();	
 	String cid = node.getUniqueName();	
+	
+	dbLog = new DBLogUtil(node);
+	
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
 	String dbmsId = ElementParameterParser.getValue(node,"__MAPPING__");
 	String tableName = ElementParameterParser.getValue(node,"__TABLE__");
@@ -316,17 +319,21 @@ skeleton="../templates/db_output_bulk.skeleton"
     		pstmt_<%=cid %>.addBatch();
     		nb_line_<%=cid%>++;    		 
 			
-    		  <%if (useBatchSize && !("").equals(batchSize) && !("0").equals(batchSize)) {
-    		  %>
-    		  batchSizeCounter_<%=cid%>++;
-    		  <%
-    		  }%>    		
+    		  	<%
+    		  	dbLog.data().addingToBatch(dbLog.var("nb_line"), dbLog.str(dataAction));
+				if (useBatchSize && !("").equals(batchSize) && !("0").equals(batchSize)) {
+   		  		%>
+		  			batchSizeCounter_<%=cid%>++;
+    		  	<%
+    		  	}
+		  	  	%>    		
     		<%
     		}else {    		
     		%>
             try {
                 nb_line_<%=cid%>++;
                 insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+                <%dbLog.data().inserting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -350,7 +357,8 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                     <%
                     } else {
-                    %>
+                    	dbLog.logPrintedException("e.getMessage()");
+                    	%>
                         System.err.print(e.getMessage());
                 <%
                     }
@@ -449,17 +457,21 @@ skeleton="../templates/db_output_bulk.skeleton"
     		pstmt_<%=cid %>.addBatch();
     		nb_line_<%=cid%>++;    		 
 			
-    		  <%if (useBatchSize && !("").equals(batchSize) && !("0").equals(batchSize)) {
-    		  %>
-    		  batchSizeCounter_<%=cid%>++;
-    		  <%
-    		  }%>    		
+    		  	<%
+    		  	dbLog.data().addingToBatch(dbLog.var("nb_line"), dbLog.str(dataAction));
+				if (useBatchSize && !("").equals(batchSize) && !("0").equals(batchSize)) {
+    		  	%>
+    		  		batchSizeCounter_<%=cid%>++;
+    		  	<%
+    		  	}
+    		  	%>    		
     		<%
     		}else {    		
     		%>
             try {
                 nb_line_<%=cid%>++;
                 updatedCount_<%=cid%> = updatedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+                <%dbLog.data().updating(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -483,6 +495,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                         <%
                     } else {
+                        dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.print(e.getMessage());
                         <%
@@ -608,6 +621,8 @@ skeleton="../templates/db_output_bulk.skeleton"
     			%>
                 try {
                     updatedCount_<%=cid%> = updatedCount_<%=cid%> + pstmtUpdate_<%=cid %>.executeUpdate(); 
+                    nb_line_<%=cid%>++;
+        			<%dbLog.data().updating(dbLog.var("nb_line"));%>
                 } catch(java.lang.Exception e) {
                     whetherReject_<%=cid%> = true;
                     <%
@@ -616,6 +631,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                         throw(e);
                         <%
                     } else {
+                    %>
+                    	nb_line_<%=cid%>++;
+                    	<%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -631,6 +649,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -677,6 +696,8 @@ skeleton="../templates/db_output_bulk.skeleton"
     			%>
                 try {
                     insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate();
+                    nb_line_<%=cid%>++;
+                    <%dbLog.data().inserting(dbLog.var("nb_line"));%>
                 } catch(java.lang.Exception e) {
                     whetherReject_<%=cid%> = true;
                     <%
@@ -685,6 +706,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                         throw(e);
                         <%
                     } else {
+                    %>
+                    	nb_line_<%=cid%>++;
+                    	<%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -700,6 +724,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -708,7 +733,6 @@ skeleton="../templates/db_output_bulk.skeleton"
                     %>
                 }
     		}
-    		nb_line_<%=cid%>++;
     		<%
     	} else if (("UPDATE_OR_INSERT").equals(dataAction)) {
     	    %>
@@ -844,7 +868,12 @@ skeleton="../templates/db_output_bulk.skeleton"
                 }                
         		%>
                     insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate();
-             }
+					nb_line_<%=cid%>++;
+                    <%dbLog.data().inserting(dbLog.var("nb_line"));%>
+    			}else{
+    				nb_line_<%=cid%>++;
+    				<%dbLog.data().updating(dbLog.var("nb_line"));%>
+    			}
                 } catch(java.lang.Exception e) {
                     whetherReject_<%=cid%> = true;
                     <%
@@ -853,6 +882,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                         throw(e);
                         <%
                     } else {
+                    %>
+                    	nb_line_<%=cid%>++;
+                    	<%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -868,6 +900,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -876,7 +909,6 @@ skeleton="../templates/db_output_bulk.skeleton"
                     %>
                 }
     
-            nb_line_<%=cid%>++;		
             <%
     	
     	} else if (("DELETE").equals(dataAction)) {
@@ -919,18 +951,23 @@ skeleton="../templates/db_output_bulk.skeleton"
     		%>
     		<%if (rejectConnName == null && useBatchSize) { // whether use batch
     		%>
-    		pstmt_<%=cid %>.addBatch();
-			
-    		  <%if (useBatchSize && !("").equals(batchSize) && !("0").equals(batchSize)) {
-    		  %>
-    		  batchSizeCounter_<%=cid%>++;
-    		  <%
-    		  }%>    		
+        		pstmt_<%=cid %>.addBatch();
+    			nb_line_<%=cid%>++;
+    			<%
+    			dbLog.data().addingToBatch(dbLog.var("nb_line"), dbLog.str(dataAction));
+    			if (useBatchSize && !("").equals(batchSize) && !("0").equals(batchSize)) {
+       		  	%>
+        			batchSizeCounter_<%=cid%>++;
+        		<%
+        		}
+        		%>    		
     		<%
     		}else {    		
     		%>
             try {
             	deletedCount_<%=cid%> = deletedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+            	nb_line_<%=cid%>++;
+                <%dbLog.data().deleting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -939,6 +976,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                     throw(e);
                     <%
                 } else {
+                %>
+                	nb_line_<%=cid%>++;
+                	<%
                     if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                         %>
                         <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -954,6 +994,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.print(e.getMessage());
                         <%
@@ -964,9 +1005,10 @@ skeleton="../templates/db_output_bulk.skeleton"
             <%
             } // end whether use batch
             %>
-            nb_line_<%=cid%>++;
     	<%
     	}
+    	
+    	dbLog.traceData(incomingConnName, columnList, dbLog.var("nb_line"));
     	
         if(outgoingConns != null && outgoingConns.size() > 0) {
             %>
@@ -1000,9 +1042,11 @@ skeleton="../templates/db_output_bulk.skeleton"
                 %>                                                
                 try {
 						int countSum_<%=cid%> = 0;
+						<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 							countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
-						}                	
+						}      
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>          	
             	    	<%if (("INSERT").equals(dataAction)) {
             	    	%>
             	    		insertedCount_<%=cid%> += countSum_<%=cid%>;
@@ -1040,7 +1084,9 @@ skeleton="../templates/db_output_bulk.skeleton"
 			    	%>
 			    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
 			    	<%
-			    	}%> 
+			    	}
+			    	dbLog.logPrintedException("e.getMessage()");
+			    	%> 
                 	System.err.println(e.getMessage());
                 	<%
                 	}%>
@@ -1066,9 +1112,11 @@ skeleton="../templates/db_output_bulk.skeleton"
                 %>
                 try {
                 		int countSum_<%=cid%> = 0;
+                		<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 							countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
 						}
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
             	    	<%if (("INSERT").equals(dataAction)) {
             	    	%>
             	    		insertedCount_<%=cid%> += countSum_<%=cid%>;
@@ -1105,15 +1153,19 @@ skeleton="../templates/db_output_bulk.skeleton"
             	    	%>
             	    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
             	    	<%
-            	    	}%>
-                        System.out.println(e.getMessage());
+            	    	}
+            	    	dbLog.logPrintedException("e.getMessage()");
+            	    	%>
+                        System.err.println(e.getMessage());
                 	<%
                 	}%>
                 
                 }            	                              
                 <%
                 }%>
+                	<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
                 	conn_<%=cid%>.commit();                
+                	<%dbLog.commit().commitDone(null);%>       
                 	commitCounter_<%=cid%>=0;
                 }	
                 <%

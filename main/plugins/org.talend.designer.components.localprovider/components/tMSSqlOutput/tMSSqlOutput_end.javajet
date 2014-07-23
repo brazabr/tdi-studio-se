@@ -15,13 +15,13 @@ imports="
 "  
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	
 	String cid = node.getUniqueName();
-	
+	dbLog = new DBLogUtil(node);
 	final String dbmsId = ElementParameterParser.getValue(node,"__MAPPING__");
 
 	List<Map<String, String>> addCols =
@@ -74,7 +74,10 @@ skeleton="../templates/db_output_bulk.skeleton"
 	if(("true").equals(identityInsert) && useExistingConnection ) {
         %>
 		if ( isShareIdentity_<%=cid%> ) {
-        	 stmt_<%=cid %>.execute("SET IDENTITY_INSERT ["+ tableName_<%=cid%> +"] ON");
+			String setIdentityInsertONSQL_<%=cid%> = "SET IDENTITY_INSERT ["+ tableName_<%=cid%> +"] ON";
+			<%dbLog.data().sqlExecuteTry(dbLog.var("setIdentityInsertONSQL"));%>
+        	stmt_<%=cid %>.execute(setIdentityInsertONSQL_<%=cid%>);
+			<%dbLog.data().sqlExecuteDone(dbLog.var("setIdentityInsertONSQL"));%>												
         }
         <%
     } 
@@ -349,12 +352,14 @@ skeleton="../templates/db_output_bulk.skeleton"
                 try {
 						int countSum_<%=cid%> = 0;
 						if (pstmt_<%=cid %> != null) {
+							<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 							for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 								if(countEach_<%=cid%> == -2 || countEach_<%=cid%> == -3) {
 									break;
 								}
 								countSum_<%=cid%> += countEach_<%=cid%>;
 							}             	
+							<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
 						}
             	    	<%if (("INSERT").equals(dataAction)) {
             	    	%>
@@ -392,8 +397,10 @@ skeleton="../templates/db_output_bulk.skeleton"
             	    	%>
             	    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
             	    	<%
-            	    	}%>     
-                	System.out.println(e.getMessage());
+            	    	}
+            	    	dbLog.logPrintedException("e.getMessage()");
+            	    	%>     
+                		System.err.println(e.getMessage());
                 	<%
                 	}%>                	
             	}                                  
@@ -418,8 +425,11 @@ skeleton="../templates/db_output_bulk.skeleton"
     
 if(("true").equals(identityInsert)){
 %>
- stmt_<%=cid %>.execute("SET IDENTITY_INSERT ["+ tableName_<%=cid%> +"] OFF");
- stmt_<%=cid %>.close();
+    String setIdentityInsertOFFSQL_<%=cid%> = "SET IDENTITY_INSERT ["+ tableName_<%=cid%> +"] OFF";
+    <%dbLog.data().sqlExecuteTry(dbLog.var("setIdentityInsertOFFSQL"));%>
+    stmt_<%=cid %>.execute(setIdentityInsertOFFSQL_<%=cid%>);
+    <%dbLog.data().sqlExecuteDone(dbLog.var("setIdentityInsertOFFSQL"));%>
+    stmt_<%=cid %>.close();
 <%
 }
 %>
@@ -430,16 +440,21 @@ if(("true").equals(identityInsert)){
         if(!("").equals(commitEvery) && !("0").equals(commitEvery))
         {
             %>
+            <%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
             conn_<%=cid%>.commit();
+			<%dbLog.commit().commitDone(null);%>            
             <%
         }
     
         commitEvery = "0";
         %>  
+        <%dbLog.conn().closeTry(null);%>
         conn_<%=cid%> .close();
+        <%dbLog.conn().closeDone(null);%>
         resourceMap.put("finish_<%=cid%>", true);
         <%
     }
     %>
     
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+<%dbLog.endWork();%>

@@ -16,11 +16,13 @@ imports="
 "
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
     INode node = (INode)codeGenArgument.getArgument();    
     String cid = node.getUniqueName();
+       
+    dbLog = new DBLogUtil(node);       
         
     String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
     String dieOnError = ElementParameterParser.getValue(node, "__DIE_ON_ERROR__");
@@ -538,7 +540,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
     		pstmt_<%=cid %>.addBatch();
     		nb_line_<%=cid%>++;    		 
 			
-    		 <%if (("true").equals(useBatchSize) && !("").equals(batchSize) && !("0").equals(batchSize)) {
+    		 <%
+    		 dbLog.data().addingToBatch(dbLog.var("nb_line"), dbLog.str(dataAction));
+    		 if (("true").equals(useBatchSize) && !("").equals(batchSize) && !("0").equals(batchSize)) {
     		  %>
     		  batchSizeCounter_<%=cid%>++;
     		  <%
@@ -556,6 +560,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
 %>    
                 nb_line_<%=cid%>++;
                 insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+                <%dbLog.data().inserting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -579,6 +584,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                         <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.println(e.getMessage());
                         <%
@@ -768,7 +774,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
     		%>
     		pstmt_<%=cid %>.addBatch();
     		nb_line_<%=cid%>++;
-    		<%if (("true").equals(useBatchSize) && !("").equals(batchSize) && !("0").equals(batchSize)) {
+    		<%
+    		dbLog.data().addingToBatch(dbLog.var("nb_line"), dbLog.str(dataAction));
+    		if (("true").equals(useBatchSize) && !("").equals(batchSize) && !("0").equals(batchSize)) {
     		%>
     		batchSizeCounter_<%=cid%>++;
     		<%
@@ -786,6 +794,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
 %>   
                 nb_line_<%=cid%>++;
                 updatedCount_<%=cid%> = updatedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+        	    <%dbLog.data().updating(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -809,6 +818,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                         <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.println(e.getMessage());
                         <%
@@ -953,6 +963,8 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
 				}//end issue0010403 date type
 %>   
                     updatedCount_<%=cid%> = updatedCount_<%=cid%> + pstmtUpdate_<%=cid %>.executeUpdate();
+                    nb_line_<%=cid%>++;
+        			<%dbLog.data().updating(dbLog.var("nb_line"));%>
                 } catch(java.lang.Exception e) {
                     whetherReject_<%=cid%> = true;
                     <%
@@ -961,6 +973,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                         throw(e);
                         <%
                     } else {
+                    %>
+                    	nb_line_<%=cid%>++;
+                    	<%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {%>
                         <%=rejectConnName %> = new <%=rejectConnName %>Struct();
                         <%
@@ -975,6 +990,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                             <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.println(e.getMessage());
                             <%
@@ -1035,6 +1051,8 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
 				}//end issue0010403 date type
 %>   
                     insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate();
+                    nb_line_<%=cid%>++;
+                    <%dbLog.data().inserting(dbLog.var("nb_line"));%>
                 } catch(java.lang.Exception e) {
                     whetherReject_<%=cid%> = true;
                     <%
@@ -1043,6 +1061,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                         throw(e);
                         <%
                     } else {
+                    %>
+                    	nb_line_<%=cid%>++;
+                    	<%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -1058,6 +1079,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                             <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.println(e.getMessage());
                             <%
@@ -1066,7 +1088,6 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                     %>
                 }
             }
-            nb_line_<%=cid%>++;
             <%
         } else if (("UPDATE_OR_INSERT").equals(dataAction)) {
             %>
@@ -1219,7 +1240,12 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                 }                
                 %>
                     insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate(); 
-			}
+					nb_line_<%=cid%>++;
+                    <%dbLog.data().inserting(dbLog.var("nb_line"));%>
+    			}else{
+    				nb_line_<%=cid%>++;
+    				<%dbLog.data().updating(dbLog.var("nb_line"));%>
+    			}
                 } catch(java.lang.Exception e) {
                     whetherReject_<%=cid%> = true;
                     <%
@@ -1228,6 +1254,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                         throw(e);
                         <%
                     } else {
+                    %>
+                    	nb_line_<%=cid%>++;
+                    	<%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -1243,6 +1272,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                             <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.println(e.getMessage());
                             <%
@@ -1250,7 +1280,6 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                     } 
                     %>
                 }
-            nb_line_<%=cid%>++;
             <%
         
         } else if (("DELETE").equals(dataAction)) {
@@ -1301,7 +1330,10 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
          	<%if(rejectConnName == null &&("true").equals(useBatchSize)) {
     		%>
     		pstmt_<%=cid %>.addBatch();
-    		<%if (("true").equals(useBatchSize) && !("").equals(batchSize) && !("0").equals(batchSize)) {
+    		nb_line_<%=cid%>++;
+			<%
+			dbLog.data().addingToBatch(dbLog.var("nb_line"), dbLog.str(dataAction));
+			if (("true").equals(useBatchSize) && !("").equals(batchSize) && !("0").equals(batchSize)) {
     		%>
     		batchSizeCounter_<%=cid%>++;
     		<%
@@ -1318,6 +1350,8 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
 				}//end issue0010403 date type
 %>   
                 deletedCount_<%=cid%> = deletedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+                nb_line_<%=cid%>++;
+                <%dbLog.data().deleting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -1326,6 +1360,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                     throw(e);
                     <%
                 } else {
+                %>
+                	nb_line_<%=cid%>++;
+                	<%
                     if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                         %>
                         <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -1341,6 +1378,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                         <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.println(e.getMessage());
                         <%
@@ -1350,7 +1388,6 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
             }
             <%
     		}%>
-            nb_line_<%=cid%>++;
         <%
         } else if (("INSERT_IF_NOT_EXIST").equals(dataAction)) { 
         int columnIndex = 1;
@@ -1428,6 +1465,8 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
 				}//end issue0010403 date type
 %>   
                 insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate();
+                nb_line_<%=cid%>++;
+                <%dbLog.data().inserting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
 				whetherReject_<%=cid%> = true;
                 <%
@@ -1436,6 +1475,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                 throw(e);
                 <%
             } else {
+            %>
+            	nb_line_<%=cid%>++;
+            	<%
                 if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
 			 %>
 	            <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -1451,6 +1493,7 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                     <%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName() %>;
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -1459,10 +1502,9 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                     %>
                 }
             }
-            nb_line_<%=cid%>++;
         <%
         }  // end of insert if not exist 
-        
+    	dbLog.traceData(incomingConnName, columnList, dbLog.var("nb_line"));
         if(outgoingConns != null && outgoingConns.size() > 0) {
             %>
             if(!whetherReject_<%=cid%>) {
@@ -1495,12 +1537,14 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                 %>                                                
                 try {
 						int countSum_<%=cid%> = 0;
+						<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 							if(countEach_<%=cid%> == -2 || countEach_<%=cid%> == -3) {
 								break;
 							}
 							countSum_<%=cid%> += countEach_<%=cid%>;
-						}             	
+						}      
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>       	
             	    	<%if (("INSERT").equals(dataAction)) {
             	    	%>
             	    		insertedCount_<%=cid%> += countSum_<%=cid%>;
@@ -1538,8 +1582,10 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
             	    	%>
             	    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
             	    	<%
-            	    	}%>     
-                	System.err.println(e.getMessage());
+            	    	}
+            	    	dbLog.logPrintedException("e.getMessage()"); 
+            	    	%>    
+                		System.err.println(e.getMessage());
                 	<%
                 	}%>
                 }
@@ -1565,12 +1611,14 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
                 %>
                 try {
                 		int countSum_<%=cid%> = 0;
+                		<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 							if(countEach_<%=cid%> == -2 || countEach_<%=cid%> == -3) {
 								break;
 							}
 							countSum_<%=cid%> += countEach_<%=cid%>;
 						}
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
             	    	<%if (("INSERT").equals(dataAction)) {
             	    	%>
             	    		insertedCount_<%=cid%> += countSum_<%=cid%>;
@@ -1607,15 +1655,19 @@ if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("t
             	    	%>
             	    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
             	    	<%
-            	    	}%>     
-                        System.out.println(e.getMessage());
+            	    	}
+            	    	dbLog.logPrintedException("e.getMessage()");
+            	    	%>     
+                        System.err.println(e.getMessage());
                 	<%
                 	}%>
                 
                 }            	                              
                 <%
                 }%>
-                	conn_<%=cid%>.commit();                
+                	<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
+                	conn_<%=cid%>.commit();           
+            		<%dbLog.commit().commitDone(null);%>       
                 	commitCounter_<%=cid%>=0;
                 }	
                 <%

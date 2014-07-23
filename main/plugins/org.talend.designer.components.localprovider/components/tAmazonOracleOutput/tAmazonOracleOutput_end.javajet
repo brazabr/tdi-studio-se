@@ -7,13 +7,13 @@ imports="
     java.util.List
 "
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	
 	String cid = node.getUniqueName();
-	
+	dbLog = new DBLogUtil(node);
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
 	
 	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
@@ -57,7 +57,9 @@ imports="
 		// Delete geometry columns entry if already exists.
 		String deleteGeometryColumns_<%=cid %> = "DELETE FROM user_sdo_geom_metadata "
 												+ "WHERE TABLE_NAME='" + <%=tableName.toUpperCase(java.util.Locale.US) %> + "'";
+		<%dbLog.data().sqlExecuteTry(dbLog.var("deleteGeometryColumns"));%>
 		stmtCreateGeoColumns_<%=cid%>.execute(deleteGeometryColumns_<%=cid %>);
+		<%dbLog.data().sqlExecuteDone(dbLog.var("deleteGeometryColumns"));%>
 
 		for (String column: geometryColumnToExtends.keySet()) {
 		    com.vividsolutions.jts.geom.Envelope extend = geometryColumnToExtends.get(column);
@@ -68,7 +70,9 @@ imports="
 	        										+ "MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('x', " + extend.getMinX() + ", " + extend.getMaxX() + ", <%=indexAccuracy %>), "
 	        										+ "MDSYS.SDO_DIM_ELEMENT('y', " + extend.getMinY() + ", " + extend.getMaxY() + ", <%=indexAccuracy %>)), "
 	        										+ <%=targetSRID < 0 ? "\"NULL\"" : targetSRID %> +")";
+			<%dbLog.data().sqlExecuteTry(dbLog.var("insertGeometryColumns"));%>
 	    	stmtCreateGeoColumns_<%=cid%>.execute(insertGeometryColumns_<%=cid %>);
+	    	<%dbLog.data().sqlExecuteDone(dbLog.var("insertGeometryColumns"));%>
     	}
         
         stmtCreateGeoColumns_<%=cid%>.close();
@@ -87,16 +91,21 @@ imports="
 			// Drop spatial index if exists
 			String dropIndex_<%=cid %> = "DROP INDEX "+index_name;
 	        try {
+	        	<%dbLog.data().sqlExecuteTry(dbLog.var("dropIndex"));%>
 				stmtCreateIndex_<%=cid%>.execute(dropIndex_<%=cid %>);
+        		<%dbLog.data().sqlExecuteDone(dbLog.var("dropIndex"));%>
 			}
 			catch (java.sql.SQLException e) {
+				<%dbLog.logIgnoredException("e.getMessage()");%>
 			}
 			
 			// Create spatial index using GIST on geometry columns
 			String createIndex_<%=cid %> = "CREATE INDEX "+index_name + " " 
 						+ "ON " + <%=tableName %> + "(" + geometryColumnName + ") "
 						+ "INDEXTYPE IS MDSYS.SPATIAL_INDEX";
+			<%dbLog.data().sqlExecuteTry(dbLog.var("createIndex"));%>
 	        stmtCreateIndex_<%=cid%>.execute(createIndex_<%=cid %>);
+	        <%dbLog.data().sqlExecuteDone(dbLog.var("createIndex"));%>
 	        stmtCreateIndex_<%=cid%>.close();
 	    }
 		<%
@@ -148,7 +157,9 @@ imports="
             %>                
                 try {
                 	if (pstmt_<%=cid %> != null) { 
+                		<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						pstmt_<%=cid %>.executeBatch();    
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
             	    }          	    
                 }catch (java.sql.BatchUpdateException e){
                 	<%if(("true").equals(dieOnError)) {
@@ -156,8 +167,9 @@ imports="
                 		throw(e);
                 	<%
                 	}else {
+                	dbLog.logPrintedException("e.getMessage()");
                 	%>
-                	System.out.println(e.getMessage());
+                	System.err.println(e.getMessage());
                 	<%
                 	}%>                	
             	}
@@ -194,15 +206,19 @@ imports="
 		{
 		    %>
 		    
-		    
+		    <%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
 		    conn_<%=cid%>.commit();
+		    <%dbLog.commit().commitDone(null);%>
 		    <%
 		}
 		%>	
+		<%dbLog.conn().closeTry(null);%>
     	conn_<%=cid%> .close();
+    	<%dbLog.conn().closeDone(null);%>
     	resourceMap.put("finish_<%=cid%>", true);
     	<%
 	}
     %>
     
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+<%dbLog.endWork();%>

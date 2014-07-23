@@ -5,10 +5,11 @@ imports="
 	org.talend.core.model.process.ElementParameterParser
 " 
 %>
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
-	
+	dbLog = new DBLogUtil(node);
 	String cid = node.getUniqueName();
 	
 	String frameworkType = ElementParameterParser.getValue(node,"__FRAMEWORK_TYPE__");
@@ -20,7 +21,9 @@ imports="
 		if(resourceMap.get("conn_<%=cid%>")!=null){
 			try
 	    	{
+	    		<%dbLog.conn().closeTry(null);%>
 				((java.sql.Connection)resourceMap.get("conn_<%=cid%>")).close();
+				<%dbLog.conn().closeDone(null);%>
 			<%
 			if(("EMBEDED").equals(frameworkType)){
 			%>
@@ -31,7 +34,7 @@ imports="
 	    	}
 	    	catch(java.sql.SQLException se)
 	    	{
-	            //ignore
+	            <%dbLog.logPrintedException(dbLog.var("errorMessage"));%>
 	    	}
 		}
 	}

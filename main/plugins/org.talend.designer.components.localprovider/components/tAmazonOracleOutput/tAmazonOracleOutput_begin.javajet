@@ -14,12 +14,15 @@ imports="
 	" 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode)codeGenArgument.getArgument();	
 String cid = node.getUniqueName();	
+
+dbLog = new DBLogUtil(node);
+
 List<Map<String, String>> addCols = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__ADD_COLS__" );    
 boolean useFieldOptions = ("true").equals(ElementParameterParser.getValue(node, "__USE_FIELD_OPTIONS__"));    
 List<Map<String, String>> fieldOptions = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__FIELD_OPTIONS__");    
@@ -43,7 +46,8 @@ String dbVersion =  ElementParameterParser.getValue(node, "__DB_VERSION__");
 boolean useSpatialOptions = ("true").equals(ElementParameterParser.getValue(node,"__USE_SPATIAL_OPTIONS__"));
 boolean createSpatialIndex = ("true").equals(ElementParameterParser.getValue(node,"__SPATIAL_INDEX__"));
 boolean createGeometryColumns = ("true").equals(ElementParameterParser.getValue(node,"__GEOMETRY_COLUMNS__"));
-
+dbLog.startWork();
+dbLog.logCompSetting();
 if (useSpatialOptions) {
 	int targetSRID = -1;
 	try {
@@ -168,13 +172,16 @@ if(useExistingConnection) {
 	%>
 	dbschema_<%=cid%> = (String)globalMap.get("<%=schema%>");
 	conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
+	<%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
 	<%
 } else {   
     %>
 	<%if("ORACLE_11".equals(dbVersion) || "ORACLE_11-6".equals(dbVersion) || "ORACLE_12".equals(dbVersion)){%>
-		java.lang.Class.forName("oracle.jdbc.OracleDriver");	
+		java.lang.Class.forName("oracle.jdbc.OracleDriver");
+		<%dbLog.conn().logJDBCDriver(dbLog.str("oracle.jdbc.OracleDriver"));%>	
 	<%}else {%>
-		java.lang.Class.forName("oracle.jdbc.driver.OracleDriver");	
+		java.lang.Class.forName("oracle.jdbc.driver.OracleDriver");
+		<%dbLog.conn().logJDBCDriver(dbLog.str("oracle.jdbc.driver.OracleDriver"));%>	
 	<%}%>
 	<%
 	String connectionType = ElementParameterParser.getValue(node, "__CONNECTION_TYPE__");
@@ -210,7 +217,7 @@ if(useExistingConnection) {
 	
 	String dbPwd_<%=cid%> = decryptedPassword_<%=cid%>;
     dbschema_<%=cid%> = <%=tableSchema%>;	
-	
+	<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
 	<%
 	if(("ORACLE_WALLET").equals(connectionType)) {
 	%>
@@ -237,6 +244,7 @@ if(useExistingConnection) {
 <%
 	}
 %>
+	<%dbLog.conn().connDone(dbLog.var("url"));%>
 	resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
 	
 	<%
@@ -250,7 +258,7 @@ if(!useExistingConnection) {
         <%
     }
 }
-
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 if (("true").equals(useBatchSize)) {
     if(!("").equals(batchSize)&&!("0").equals(batchSize)) {
 %>
@@ -419,9 +427,11 @@ if(columnList != null && columnList.size()>0) {
 		    // Close the temporary CLOB 
 		    tempClob.close();    
 		  } catch( java.sql.SQLException sqlexp){
+		  	<%dbLog.logPrintedException("sqlexp.getMessage()");%>
 		    tempClob.freeTemporary(); 
 		    sqlexp.printStackTrace();
 		  } catch(java.lang.Exception exp){
+		  	<%dbLog.logPrintedException("exp.getMessage()");%>
 		    tempClob.freeTemporary(); 
 		    exp.printStackTrace();
 		  }

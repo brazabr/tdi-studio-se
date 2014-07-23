@@ -7,12 +7,12 @@ imports="
 	java.util.List
 "
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode) codeGenArgument.getArgument();
 String cid = node.getUniqueName();
-
+dbLog = new DBLogUtil(node);
 String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
 String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
 String dieOnError = ElementParameterParser.getValue(node, "__DIE_ON_ERROR__");
@@ -68,7 +68,9 @@ if(("INSERT_OR_UPDATE").equals(dataAction)) {
 				int countSum_<%=cid%> = 0;
                 try {
                 	if(pstmt_<%=cid %>!=null && batchSizeCounter_<%=cid%> > 0 ){
+                		<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						status_<%=cid%> = pstmt_<%=cid %>.executeBatch();
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
 						for(int countEach_<%=cid%>: status_<%=cid%>) {
 							countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
 						}
@@ -80,11 +82,12 @@ if(("INSERT_OR_UPDATE").equals(dataAction)) {
                 		throw(e);
                 	<%
                 	}else {
+                	dbLog.logPrintedException("e.getMessage()");
                 	%>
 					for(int countEach_<%=cid%>: e.getUpdateCounts()) {
 						countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
 					}
-                	System.out.println(e.getMessage());
+                	System.err.println(e.getMessage());
                 	<%
                 	}
                 	%>                	
@@ -128,14 +131,19 @@ if(("false").equals(useExistingConn)){
 	// Commit if needed
 	if (!("").equals(commitEvery) && !("0").equals(commitEvery)) {
 	    %>
+	    <%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
 	    connection_<%=cid%>.commit();
+	    <%dbLog.commit().commitDone(null);%>
 	    <%
 	}
 	%>
+	<%dbLog.conn().closeTry(null);%>
 	connection_<%=cid%>.close();
+	<%dbLog.conn().closeDone(null);%>
 	resourceMap.put("finish_<%=cid%>", true);
 	<%
 }
 %>
 
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+<%dbLog.endWork();%>

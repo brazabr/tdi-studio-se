@@ -13,10 +13,11 @@
 	"
 	skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+    <%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();	
+	dbLog = new DBLogUtil(node);
 	String cid = node.getUniqueName();	
 	String dbTypeDefinition = ElementParameterParser.getValue(node, "__TYPE__");
 	String [] dbtypes = dbTypeDefinition.split(";");                        
@@ -52,6 +53,8 @@
 	boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
 	boolean useStatement = ("true").equals(ElementParameterParser.getValue(node,"__USE_STATEMENT__"));
 	String dbproperties = ElementParameterParser.getValue(node, "__PROPERTIES__");
+    dbLog.startWork();
+    dbLog.logCompSetting();
 %>
 int nb_line_<%=cid%> = 0;
 int nb_line_update_<%=cid%> = 0;
@@ -128,7 +131,8 @@ if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || (
     }
 }
 %> 
-java.lang.Class.forName("<%=javaDbDriver %>");
+java.lang.Class.forName("<%=javaDbDriver%>");
+<%dbLog.conn().logJDBCDriver(dbLog.str("javaDbDriver"));%>
 String dbUser_<%=cid %> = <%=dbuser%>;
 <%
 String passwordFieldName = "__PASS__";
@@ -140,6 +144,7 @@ String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
 
 String dbProperties_<%=cid%> = <%=dbproperties%>;
 java.sql.Connection conn_<%=cid%> = null;
+<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
 if(dbProperties_<%=cid%> == null || dbProperties_<%=cid%>.trim().length() == 0) {
 	conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
 }else{
@@ -150,8 +155,10 @@ if(dbProperties_<%=cid%> == null || dbProperties_<%=cid%>.trim().length() == 0) 
 	atnParamsPrope_<%=cid%>.load(new java.io.ByteArrayInputStream(dbProperties_<%=cid%>.getBytes()));
 	conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid%>, atnParamsPrope_<%=cid%>);
 }
+<%dbLog.conn().connDone(dbLog.var("url"));%>
 resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
 conn_<%=cid%>.setAutoCommit(false);
+<%dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");%>
 <%
 if(("true").equals(tableAction)) {
     %>
