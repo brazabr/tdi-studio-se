@@ -44,11 +44,6 @@ skeleton="../templates/db_output_bulk.skeleton"
     
     boolean extendedInsert = ("true").equals(ElementParameterParser.getValue(node, "__EXTENDINSERT__"));
         
-        //to fixed: bug8422
-        if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))||(!("INSERT").equals(dataAction))){
-        	extendedInsert = false;
-        }    
-    
     String numPerInsert = ElementParameterParser.getValue(node, "__NB_ROWS_PER_INSERT__");
     boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
 	
@@ -209,25 +204,7 @@ if(columnList != null && columnList.size() > 0) {
 %>
 				<%@ include file="../templates/_hintInsert.javajet" %>
 
-                <%
-                //to fixed: bug8422
-                if(!(cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){%>
-                        pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
-                <%}%>
-                        
-                <%
-                //to fixed: bug8422
-                if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){ %>
-                		pstmt_<%=cid %> = null;         
-                        // [%connection%][psmt][tableName]
-                        String keyPsmt_<%=cid %> = conn_<%=cid%> + "[psmt]" + "[" + <%=table%> + "]";
-                		if(GlobalResource.resourceMap.get(keyPsmt_<%=cid %>)== null){
-                			pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);		
-                			GlobalResource.resourceMap.put(keyPsmt_<%=cid %>, pstmt_<%=cid %>);
-                		}else{
-                			pstmt_<%=cid %> = (java.sql.PreparedStatement)GlobalResource.resourceMap.get(keyPsmt_<%=cid %>);				
-                		}
-                <%}%>
+                pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
 	        	        
 <%
 	    } else {//extended-insert mode(begin)

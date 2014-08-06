@@ -56,11 +56,6 @@ skeleton="../templates/db_output_bulk.skeleton"
 		extendedInsert = ("true").equals(ElementParameterParser.getValue(node, "__EXTENDINSERT__"));
 	}
    
-	//to fixed: bug8422
-	if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){
-		extendedInsert = false;
-	}
-
 	String numPerInsert = ElementParameterParser.getValue(node, "__NB_ROWS_PER_INSERT__");
 	
 	if(extendedInsert){

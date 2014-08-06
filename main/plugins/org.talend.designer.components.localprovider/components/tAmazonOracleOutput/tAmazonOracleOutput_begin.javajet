@@ -344,20 +344,7 @@ if(columnList != null && columnList.size()>0) {
 	    String insert_<%=cid%> = "INSERT INTO " + tableName_<%=cid%> + " (<%=insertColName.toString()%>) VALUES (<%=insertValueStmt.toString()%>)";
 	   	<%@ include file="../templates/_hintInsert.javajet" %>	    
 	    
-                <%
-                //to fixed: bug8422
-                if(!(cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){%>
-                        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
-                <%}%>
-                        
-                <%
-                //to fixed: bug8422
-                if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){ %>
-                		java.sql.PreparedStatement pstmt_<%=cid %> = null;         
-                        // [%connection%][psmt][tableName]
-                        String keyPsmt_<%=cid %> = conn_<%=cid%> + "[psmt]" + "[" + <%=table%> + "]";
-                        pstmt_<%=cid %> = SharedDBPreparedStatement.getSharedPreparedStatement(conn_<%=cid%>,insert_<%=cid%>,keyPsmt_<%=cid%>);
-                <%}%>
+        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
 	    
 	    <%
 	} else if (("UPDATE").equals(dataAction)) {

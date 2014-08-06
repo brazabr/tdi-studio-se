@@ -40,11 +40,6 @@ skeleton="../templates/db_output_bulk.skeleton"
 	 
 	boolean extendedInsert = ("true").equals(ElementParameterParser.getValue(node, "__EXTENDINSERT__"));
         
-	//to fixed: bug8422
-	if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))||(!("INSERT").equals(dataAction))){
-		extendedInsert = false;
-	} 
-     
     //feature:2880
     getManager(dbmsId, cid, node);
     boolean whereSupportNull = ElementParameterParser.getValue(node, "__SUPPORT_NULL_WHERE__").equals("true");

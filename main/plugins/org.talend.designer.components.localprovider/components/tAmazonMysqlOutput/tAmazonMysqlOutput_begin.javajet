@@ -61,12 +61,6 @@ skeleton="../templates/db_output_bulk.skeleton"
 	
 	if ("INSERT".equalsIgnoreCase(dataAction)) {
 		extendedInsert = ("true").equals(ElementParameterParser.getValue(node, "__EXTENDINSERT__"));	
-
-        //to fixed: bug8422
-        if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){
-        	extendedInsert = false;
-        }
-		
 	}else {
 		extendedInsert = false;
 	}
@@ -319,20 +313,7 @@ if(columnList != null && columnList.size() > 0) {
 %>
 				<%@ include file="../templates/_hintInsert.javajet" %>
 
-                <%
-                //to fixed: bug8422
-                if(!(cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){%>
-                        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
-                <%}%>
-                        
-                <%
-                //to fixed: bug8422
-                if((cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){ %>
-                		java.sql.PreparedStatement pstmt_<%=cid %> = null;         
-                        // [%connection%][psmt][tableName]
-                        String keyPsmt_<%=cid %> = conn_<%=cid%> + "[psmt]" + "[" + <%=table%> + "]";
-                        pstmt_<%=cid %> = SharedDBPreparedStatement.getSharedPreparedStatement(conn_<%=cid%>,insert_<%=cid%>,keyPsmt_<%=cid%>);
-                <%}%>
+                java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
 	        	        
 <%
 	    } else {//extended-insert mode(begin)

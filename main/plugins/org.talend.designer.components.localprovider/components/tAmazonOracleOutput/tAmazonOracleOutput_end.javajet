@@ -181,18 +181,7 @@ imports="
             <%
             }%>        
         if(pstmt_<%=cid %> != null) {            
-			<%
-			//to fixed: bug8422
-			if(!(cid.equals("talendLogs_DB") || cid.equals("talendStats_DB") || cid.equals("talendMeter_DB"))){
-			%>
-				pstmt_<%=cid %>.close();
-			<%
-			}else{
-			%>
-				SharedDBPreparedStatement.releasePreparedStatement(keyPsmt_<%=cid%>);   
-			<%
-			}
-			%>                    
+			pstmt_<%=cid %>.close();
         }        
         <%
     }   
