@@ -32,6 +32,9 @@ String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
 String clearTable = ElementParameterParser.getValue(node, "__CLEAR_TABLE__");
 String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
 boolean isEnableDebug = ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__").equals("true");
+boolean enableLibrefs = "true".equals(ElementParameterParser.getValue(node, "__ENABLE_LIBREFS__")); 
+String dbname = ElementParameterParser.getValue(node, "__DBNAME__");
+List<Map<String, String>> sasProps = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__JDBC_PARAMETERS__"); 
 
 List<IMetadataColumn> columnList = getColumnList(node);
 List<Column> stmtStructure = null;
@@ -97,14 +100,34 @@ if(useExistingConn.equals("true")){
     %>
     java.lang.Class.forName(<%=driverClass %>);
     String connectionString_<%=cid %> = <%=jdbcUrl %>;
+    String dbUser_<%=cid %> = <%=dbuser%>;
     
     <%
     String passwordFieldName = "__PASS__";
     %>
     
     <%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>      
+    String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
+	java.util.Properties property_<%=cid %> = new java.util.Properties();
+	
+	<%if(enableLibrefs){%>
+		String librefs_<%=cid%> = <%=dbname%>;
+		property_<%=cid%>.setProperty("librefs", librefs_<%=cid%>);
+	<%}%>
+	property_<%=cid %>.setProperty("username", dbUser_<%=cid %>);
+	property_<%=cid %>.setProperty("password", dbPwd_<%=cid %>);
+	<%
+	if(sasProps!=null && sasProps.size()>0){
+		for(int i = 0; i < sasProps.size(); i++){
+			Map<String, String> sasProp = sasProps.get(i);
+			%>
+			property_<%=cid%>.setProperty(String.valueOf(<%=sasProp.get("KEY")%>), String.valueOf(<%=sasProp.get("VALUE")%>));
+		<%
+		}
+	}
+	%>
     
-    java.sql.Connection connection_<%=cid %> = java.sql.DriverManager.getConnection(connectionString_<%=cid %>, <%=dbuser %>, decryptedPassword_<%=cid%>);
+    java.sql.Connection connection_<%=cid %> = java.sql.DriverManager.getConnection(connectionString_<%=cid %>, property_<%=cid%>);
 	resourceMap.put("conn_<%=cid%>", connection_<%=cid %>);
     <%
 }
