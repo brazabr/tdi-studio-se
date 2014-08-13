@@ -66,6 +66,9 @@ skeleton="../templates/db_output_bulk.skeleton"
 	boolean savePoint = ("true").equals(ElementParameterParser.getValue(node,"__SAVE_POINT__"));
 	
 	String dieOnError = ElementParameterParser.getValue(node, "__DIE_ON_ERROR__");
+	
+	dbLog.startWork();
+	dbLog.logCompSetting();
 %>
 
 <%
@@ -160,11 +163,13 @@ if(("true").equals(useExistingConn)) {
 	String conn = "conn_" + connection;
 	%>
 	conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
+	<%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
 	<%if(savePoint && !useBatchSize && !("true").equals(dieOnError)){%>
 		java.sql.Savepoint  sp_<%=cid %> = null;
 	<%}
 } else {
 	%>	
+	<%dbLog.conn().logJDBCDriver(dbLog.str("org.postgresql.Driver"));%>
     java.lang.Class.forName("org.postgresql.Driver");    
     String url_<%=cid %> = "jdbc:postgresql://"+<%=dbhost%>+":"+<%=dbport%>+"/"+<%=dbname%>;    
     String dbUser_<%=cid %> = <%=dbuser%>;
@@ -176,7 +181,10 @@ if(("true").equals(useExistingConn)) {
 
     String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
     
+    <%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>
     conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+    <%dbLog.conn().connDone(dbLog.var("url"));%>
+    
 	resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
     <%if(savePoint && !useBatchSize && !("true").equals(dieOnError) && (!("").equals(commitEvery) && !("0").equals(commitEvery))){%>
     	java.sql.Savepoint  sp_<%=cid %> = null;
@@ -186,11 +194,12 @@ if(!("true").equals(useExistingConn)) {
     if(!("").equals(commitEvery) && !("0").equals(commitEvery)) {
         %>
         conn_<%=cid%>.setAutoCommit(false);
-        int commitEvery_<%=cid%> = <%=commitEvery%>;            
+        int commitEvery_<%=cid%> = <%=commitEvery%>;
         int commitCounter_<%=cid%> = 0;
         <%
     }
 }
+	dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 %>
 
 <%if(("true").equals(useExistingConn) && savePoint){%>

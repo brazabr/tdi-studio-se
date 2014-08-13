@@ -90,17 +90,15 @@ imports="
 						if (pstmt_<%=cid %> !=null) {
 					<%
 					} 
-					%>		
-						<%if(isLog4jEnabled) {%>
-							log.debug("<%=cid%> - Executing the <%=dataAction%> batch.");
-						<%}%>
+					%>
             	    	int countSum_<%=cid%> = 0;
+            	    	
+            	    	<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
 						for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 							countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
 						}
-						<%if (isLog4jEnabled) {%>						
-							log.debug("<%=cid%> - The <%=dataAction%> batch execution has succeeded.");
-						<%}%>
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
+
             	    	<%if (("INSERT").equals(dataAction)) {
             	    	%>
             	    		insertedCount_<%=cid%> += countSum_<%=cid%>;
@@ -121,7 +119,8 @@ imports="
 					<% if (isEnableDebug) { %>
 					java.sql.SQLException e2 = e;
 					while (e2 != null) {
-						System.out.println(e.getMessage());
+						<% dbLog.logPrintedException("e.getMessage()"); %>
+						System.err.println(e.getMessage());
 						e2 = e2.getNextException();
 					}
 					<% } %>
@@ -133,6 +132,9 @@ imports="
 			while(e != null){
 				if(e.getErrorCode() == -2801){
 					System.out.println("[Message]: " + e.getMessage());
+					<% 
+						dbLog.logPrintedException("e.getMessage()");
+					 %>
 					e.printStackTrace();
 					System.out.println();
 				}
@@ -140,26 +142,27 @@ imports="
 					isFailure = true;
 				} else{
 					System.out.println("[Message]: " + e.getMessage());
+					<% 
+						dbLog.logPrintedException("e.getMessage()");
+					 %>
 					e.printStackTrace();
 				}
 				e = e.getNextException();
 			}
 			if(isFailure && e != null){
 				System.out.println("[Message]: " + e.getMessage());
+				<% 
+						dbLog.logPrintedException("e.getMessage()");
+				%>
 				e.printStackTrace();
 			}
                 	<%if(("true").equals(dieOnError)) {
                 	%>
-					<%if(isLog4jEnabled){%>
-						log.fatal("<%=cid%> - " + e3.getMessage());
-					<%}%>
 				throw(e3);
                 	<%
                 	}else {
+                dbLog.logPrintedException("e3.getMessage()");
                 	%>
-					<%if(isLog4jEnabled){%>
-						log.error("<%=cid%> - " + e3.getMessage());
-					<%}%>
 				System.err.println(e3.getMessage());
                 	<%
                 	}%>                	
@@ -180,63 +183,23 @@ imports="
 	    if(!("").equals(commitEvery) && !("0").equals(commitEvery)) {
 	        %>
 			if (commitCounter_<%=cid%> > 0)
-				<%if(isLog4jEnabled){%>
-					log.debug("<%=cid%> - Starting to commit " + commitCounter_<%=cid%> + " records.");
-				<%}%>
+				<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
 	            conn_<%=cid%>.commit();
-				<%if(isLog4jEnabled){%>
-					log.debug("<%=cid%> - Commit has succeeded.");
-				<%}%>
+	            <%dbLog.commit().commitDone(null);%>
 	        <%
 	    }
 	    %>
-		<%if(isLog4jEnabled){%>
-			log.info("<%=cid%> - Closing the connection to the database.");
-		<%}%>
 		<%@ include file="../tTeradataInput/TeradataQueryBandEnd.javajet"%>
-	    conn_<%=cid%> .close();
+		
+		<%dbLog.conn().closeTry(null);%>
+	    conn_<%=cid%>.close();
+	    <%dbLog.conn().closeDone(null);%>
+	    
 		resourceMap.put("finish_<%=cid%>", true);
-		<%if(isLog4jEnabled){%>
-			log.info("<%=cid%> - Connection to the database closed.");
-		<%}%>
 	    <%
 	}
     %>
 
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
-	
-	<%
-	if(isLog4jEnabled){
-		if (("INSERT").equals(dataAction)) { 
-	%>
-		log.info("<%=cid%> - Has inserted " + nb_line_inserted_<%=cid%> + " records.");
-	<%
-		} else if (("UPDATE").equals(dataAction)) {
-	%>
-	  	log.info("<%=cid%> - Has updated " + nb_line_update_<%=cid%> + " records.");
-	<%
-		} else if (("DELETE").equals(dataAction)) {
-	%>
-	  	log.info("<%=cid%> - Has deleted " + nb_line_deleted_<%=cid%> + " records.");
-	<%
-		} else if (("INSERT_OR_UPDATE").equals(dataAction)) {
-	%>
-	  	log.info("<%=cid%> - Has inserted " + nb_line_inserted_<%=cid%> + " records.");
-	  	log.info("<%=cid%> - Has updated " + nb_line_update_<%=cid%> + " records.");
-	<%
-		} else if (("UPDATE_OR_INSERT").equals(dataAction)) {
-	%>
-	  	log.info("<%=cid%> - Has updated " + nb_line_update_<%=cid%> + " records.");
-	  	log.info("<%=cid%> - Has inserted " + nb_line_inserted_<%=cid%> + " records.");
-	<%
-		}
-	    if (rejectConnName!=null) {
-	%>
-		log.info("<%=cid%> - Has rejected " + nb_line_rejected_<%=cid%> + "records.");
-	<%
-		}
-	%>
-		log.info("<%=cid%> - Done.");
-	<%
-	}
-	%>
+
+<%dbLog.endWork();%>

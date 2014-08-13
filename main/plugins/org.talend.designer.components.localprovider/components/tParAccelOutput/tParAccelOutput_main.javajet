@@ -16,11 +16,14 @@ imports="
 "
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-
+	<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
     INode node = (INode)codeGenArgument.getArgument();    
     String cid = node.getUniqueName();    
+    
+    dbLog = new DBLogUtil(node);
+    
     String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
     String dieOnError = ElementParameterParser.getValue(node, "__DIE_ON_ERROR__");
     String tableName = ElementParameterParser.getValue(node,"__TABLE__");
@@ -118,6 +121,7 @@ skeleton="../templates/db_output_bulk.skeleton"
             try {
                 insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
                 nb_line_<%=cid%>++;
+                <%dbLog.data().inserting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -142,6 +146,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
+                        <%dbLog.logPrintedException("e.getMessage()");%>
                         System.err.print(e.getMessage());
                         <%
                     }
@@ -190,6 +195,7 @@ skeleton="../templates/db_output_bulk.skeleton"
             try {
                 updatedCount_<%=cid%> = updatedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
                 nb_line_<%=cid%>++;
+                <%dbLog.data().updating(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -214,6 +220,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
+                        <%dbLog.logPrintedException("e.getMessage()");%>
                         System.err.print(e.getMessage());
                         <%
                     }
@@ -291,7 +298,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                 %>
                 try {
                     updatedCount_<%=cid%> = updatedCount_<%=cid%> + pstmtUpdate_<%=cid %>.executeUpdate();
-                } catch(java.lang.Exception e) {
+                    nb_line_<%=cid%>++;
+                    <%dbLog.data().updating(dbLog.var("nb_line"));%>
+                } catch(java.lang.Exception e) {                	
                     whetherReject_<%=cid%> = true;
                     <%
                     if (("true").equals(dieOnError)) {
@@ -299,6 +308,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                         throw(e);
                         <%
                     } else {
+                    	%>
+                        nb_line_<%=cid%>++;
+                        <%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -315,6 +327,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%
                         } else {
                             %>
+                            <%dbLog.logPrintedException("e.getMessage()");%>
                             System.err.print(e.getMessage());
                             <%
                         }
@@ -336,7 +349,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                 %>
                 try {
                     insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate();
-                } catch(java.lang.Exception e) {
+                     nb_line_<%=cid%>++;
+                     <%dbLog.data().inserting(dbLog.var("nb_line"));%>
+                } catch(java.lang.Exception e) {                	
                     whetherReject_<%=cid%> = true;
                     <%
                     if (("true").equals(dieOnError)) {
@@ -344,6 +359,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                         throw(e);
                         <%
                     } else {
+                    	%>
+                        nb_line_<%=cid%>++;
+                        <%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -360,14 +378,14 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%
                         } else {
                             %>
+                            <%dbLog.logPrintedException("e.getMessage()");%>
                             System.err.print(e.getMessage());
                             <%
                         }
                     } 
                     %>
                 }
-            }
-            nb_line_<%=cid%>++;
+            }            
             <%
         } else if (("UPDATE_OR_INSERT").equals(dataAction)) {
             %>
@@ -427,8 +445,13 @@ skeleton="../templates/db_output_bulk.skeleton"
                 }
                 %>
                     insertedCount_<%=cid%> = insertedCount_<%=cid%> + pstmtInsert_<%=cid %>.executeUpdate();
+                    nb_line_<%=cid%>++;
+                    <%dbLog.data().inserting(dbLog.var("nb_line"));%>
+             }else{
+             	   nb_line_<%=cid%>++;
+             	   <%dbLog.data().updating(dbLog.var("nb_line"));%>
              }
-                } catch(java.lang.Exception e) {
+                } catch(java.lang.Exception e) {                	
                     whetherReject_<%=cid%> = true;
                     <%
                     if (("true").equals(dieOnError)) {
@@ -436,6 +459,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                         throw(e);
                         <%
                     } else {
+                    	%>
+                        nb_line_<%=cid%>++;
+                        <%
                         if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                             %>
                             <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -452,16 +478,14 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%
                         } else {
                             %>
+                            <%dbLog.logPrintedException("e.getMessage()");%>
                             System.err.print(e.getMessage());
                             <%
                         }
                     } 
                     %>
-                }
-            nb_line_<%=cid%>++;
+                }            
             <%
-
-        
         }else if (("DELETE").equals(dataAction)){
             int keyCounter = 1;
             for(Column column : colStruct) {
@@ -491,6 +515,8 @@ skeleton="../templates/db_output_bulk.skeleton"
             %>
             try {
                 deletedCount_<%=cid%> = deletedCount_<%=cid%> + pstmt_<%=cid %>.executeUpdate();
+                nb_line_<%=cid%>++;
+                <%dbLog.data().deleting(dbLog.var("nb_line"));%>
             } catch(java.lang.Exception e) {
                 whetherReject_<%=cid%> = true;
                 <%
@@ -499,6 +525,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                     throw(e);
                     <%
                 } else {
+                    %>
+                    nb_line_<%=cid%>++;
+                    <%
                     if(rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
                         %>
                         <%=rejectConnName %> = new <%=rejectConnName %>Struct();
@@ -515,15 +544,17 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
+                        <%dbLog.logPrintedException("e.getMessage()");%>
                         System.err.print(e.getMessage());
                         <%
                     }
                 } 
                 %>
             }
-            nb_line_<%=cid%>++;
         <%
         }
+        
+        dbLog.traceData(incomingConnName, columnList, dbLog.var("nb_line"));
         
         if(outgoingConns != null && outgoingConns.size() > 0) {
             %>
@@ -555,9 +586,9 @@ skeleton="../templates/db_output_bulk.skeleton"
                 commitCounter_<%=cid%>++;
         
                 if(commitEvery_<%=cid%><=commitCounter_<%=cid%>) {
-                
+                	<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
                     conn_<%=cid%>.commit();
-                    
+                    <%dbLog.commit().commitDone(null);%>
                     commitCounter_<%=cid%>=0;
         
                 }
