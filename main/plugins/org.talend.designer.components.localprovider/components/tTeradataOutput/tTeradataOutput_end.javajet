@@ -193,6 +193,7 @@ imports="
 		<%if(isLog4jEnabled){%>
 			log.info("<%=cid%> - Closing the connection to the database.");
 		<%}%>
+		<%@ include file="../tTeradataInput/TeradataQueryBandEnd.javajet"%>
 	    conn_<%=cid%> .close();
 		resourceMap.put("finish_<%=cid%>", true);
 		<%if(isLog4jEnabled){%>

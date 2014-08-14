@@ -202,6 +202,7 @@ if(useExistingConnection) {
 		log.info("<%=cid%> - Connection attempt to '" + url_<%=cid%> + "' with the username '" + dbUser_<%=cid%> + "'.");
 	<%}%>       
     java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+    <%@ include file="../tTeradataInput/TeradataQueryBandBegin.javajet"%>
 	<%if(isLog4jEnabled){%>
 		log.info("<%=cid%> - Connection to '" + url_<%=cid%> + "' has succeeded.");
 	<%}%>
