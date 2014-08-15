@@ -87,12 +87,13 @@ public final class ExportItemAction extends AContextualAction implements IWorkbe
                         && !ERepositoryObjectType.SERVICESPORT.equals(nodProperty)) {
                     visible = true;
                 }
-                
-                if (nodProperty != null && GlobalServiceRegister.getDefault().isServiceRegistered(ICamelDesignerCoreService.class)) {
+
+                if (nodProperty != null
+                        && GlobalServiceRegister.getDefault().isServiceRegistered(ICamelDesignerCoreService.class)) {
                     ICamelDesignerCoreService camelService = (ICamelDesignerCoreService) GlobalServiceRegister.getDefault()
                             .getService(ICamelDesignerCoreService.class);
-                    if(nodProperty.equals(camelService.getRouteDocsType())|| nodProperty.equals(camelService.getRouteDocType())){
-                    	visible = false;
+                    if (nodProperty.equals(camelService.getRouteDocsType()) || nodProperty.equals(camelService.getRouteDocType())) {
+                        visible = false;
                     }
                 }
                 // for cdc
