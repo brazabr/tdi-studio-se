@@ -111,6 +111,11 @@
  		org.talend.sap.model.table.ISAPTableData data_<%=cid%> = dataService_<%=cid%>.getTableData(<%=tableName%>, fieldNames_<%=cid%>, <%=filter%>, <%=maxRowCount%>,<%=startRowNumber%>);
  	
 	 	boolean empty_<%=cid%> = data_<%=cid%>.isEmpty();
+	 	
+	 	if(!empty_<%=cid%>) {
+	 		data_<%=cid%>.firstRow();
+	 	}
+	 	
 		do {
 			if(empty_<%=cid%>) {
 				break;
