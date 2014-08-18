@@ -316,10 +316,12 @@ public class CategoryComposite extends Composite {
                             ExpressionComposite expressionComposite = ExpressionBuilderDialog.getExpressionComposite();
                             if (expressionComposite != null && expressionComposite instanceof PigExpressionComposite) {
                                 if (function.isUserDefined()) {
-                                    expressionComposite.setExpression(JavaUtils.JAVA_PIGUDF_DIRECTORY + "." + function.getName()
-                                            + "()", true);
+                                    expressionComposite.setExpression(JavaUtils.JAVA_PIGUDF_DIRECTORY + "." + function.getName()//$NON-NLS-1$
+                                            + "()", true);//$NON-NLS-1$
+                                } else if ("Pig DataFu Functions".equals(function.getCategory())) {//$NON-NLS-1$
+                                    expressionComposite.setExpression(function.getClassName() + "()", true);//$NON-NLS-1$
                                 } else {
-                                    expressionComposite.setExpression(function.getName() + "()", true);
+                                    expressionComposite.setExpression(function.getName() + "()", true);//$NON-NLS-1$
                                 }
                             } else {
                                 expressionComposite.setExpression(FunctionManagerExt.getOneColData(column, false), true);
