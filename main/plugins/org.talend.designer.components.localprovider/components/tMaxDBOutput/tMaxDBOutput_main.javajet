@@ -154,7 +154,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
-                        throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                        System.err.print(e.getMessage());
                         <%
                     }
                 } 
@@ -239,7 +239,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
-                        throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                        System.err.print(e.getMessage());
                         <%
                     }
                 } 
@@ -355,7 +355,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%
                         } else {
                             %>
-                            throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                            System.err.print(e.getMessage());
                             <%
                         }
                     } 
@@ -412,7 +412,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%
                         } else {
                             %>
-                            throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                            System.err.print(e.getMessage());
                             <%
                         }
                     } 
@@ -499,7 +499,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
-                        throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                        System.err.print(e.getMessage());
                         <%
                     }
                 } 
@@ -562,7 +562,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%
                         } else {
                             %>
-                            throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                            System.err.print(e.getMessage());
                             <%
                         }
                     } 
@@ -638,7 +638,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%
                     } else {
                         %>
-                        throw new RuntimeException("Execution failure, there might be an error in your SQL syntax.");
+                        System.err.print(e.getMessage());
                         <%
                     }
                 } 
