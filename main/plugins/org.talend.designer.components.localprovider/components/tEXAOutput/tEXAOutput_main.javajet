@@ -152,7 +152,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage();
                         <%
                     } else {
-                    	//dbLog.logPrintedException(dbLog.str("Execution failure, there might be an error in your SQL syntax."));//why not throw exception directly?
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.print(e.getMessage());
                         <%
@@ -230,6 +230,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage();
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.print(e.getMessage());
                         <%
@@ -330,6 +331,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%=rejectConnName%>.errorMessage = e.getMessage();
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -395,6 +397,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%=rejectConnName%>.errorMessage = e.getMessage();
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -480,6 +483,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage();
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.print(e.getMessage());
                         <%
@@ -546,6 +550,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                             <%=rejectConnName%>.errorMessage = e.getMessage();
                             <%
                         } else {
+                        	dbLog.logPrintedException("e.getMessage()");
                             %>
                             System.err.print(e.getMessage());
                             <%
@@ -612,6 +617,7 @@ skeleton="../templates/db_output_bulk.skeleton"
                         <%=rejectConnName%>.errorMessage = e.getMessage();
                         <%
                     } else {
+                    	dbLog.logPrintedException("e.getMessage()");
                         %>
                         System.err.print(e.getMessage());
                         <%
