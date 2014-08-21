@@ -154,7 +154,7 @@ public class LoginComposite extends Composite {
 
     private static final int HORIZONTAL_FOUR_SPACE = 20;
 
-    private int LEFTSPACE = 80;
+    private int leftSpace = 80;
 
     /**
      * Colors used for Remote Object background when enabled.
@@ -228,8 +228,6 @@ public class LoginComposite extends Composite {
     private String lastConnection = null;
 
     public static boolean isRestart = false;
-
-    private boolean inuse = false;
 
     private Label iconLabel = null;
 
@@ -308,12 +306,11 @@ public class LoginComposite extends Composite {
      * @param parent Parent component.
      * @param style Style bits.
      */
-    public LoginComposite(Composite parent, int style, LoginDialog dialog, boolean inuse, TOSLoginComposite tosLoginComposite,
+    public LoginComposite(Composite parent, int style, LoginDialog dialog, TOSLoginComposite tosLoginComposite,
             StackLayout stackLayout) {
         super(parent, style);
         this.parent = parent;
         this.dialog = dialog;
-        this.inuse = inuse;
         this.tosLoginComposite = tosLoginComposite;
         this.stackLayout = stackLayout;
         perReader = ConnectionUserPerReader.getInstance();
@@ -357,24 +354,17 @@ public class LoginComposite extends Composite {
         rightPartComposite.pack();
         // the width of column 1 should not larger than 7/21 of the whole right part width
         int size = (int) (rightPartComposite.getSize().x * (7.0 / 21));
-        if (size < LEFTSPACE) {
-            LEFTSPACE = size;
+        if (size < leftSpace) {
+            leftSpace = size;
         }
         for (FormData iFormData : columnFormDatas) {
-            iFormData.right = new FormAttachment(0, LEFTSPACE);
+            iFormData.right = new FormAttachment(0, leftSpace);
         }
 
         readConnectionData();
         recordFirstConnection();
         fillContents();
         addListeners();
-        if (inuse) {
-            manageViewer.getControl().setEnabled(false);
-            manageProjectsButton.setEnabled(false);
-            openProjectBtn.setEnabled(false);
-            // warningLabel.setVisible(true);
-            restartBut.setVisible(false);
-        }
         if (PluginChecker.isSVNProviderPluginLoaded()) {
             manageViewer.getControl().setEnabled(true);
             manageProjectsButton.setEnabled(true);
@@ -400,8 +390,8 @@ public class LoginComposite extends Composite {
         columnFormDatas.add(fromData);
         ctrl.pack();
         int width = ctrl.getSize().x + HORIZONTAL_TWO_SPACE;
-        if (LEFTSPACE < width) {
-            LEFTSPACE = width;
+        if (leftSpace < width) {
+            leftSpace = width;
         }
     }
 
@@ -1362,28 +1352,7 @@ public class LoginComposite extends Composite {
 
             manageViewer.setInput(getManageElements());
             setManageViewer();
-            if (!isWorkSpaceSame()) {
-                iconLabel.setImage(LOGIN_CRITICAL_IMAGE);
-                onIconLabel.setImage(LOGIN_CRITICAL_IMAGE);
-                colorComposite.setBackground(RED_COLOR);
-                onIconLabel.setBackground(colorComposite.getBackground());
-                statusLabel.setText(Messages.getString("LoginComposite.DIFFERENT_WORKSPACES")); //$NON-NLS-1$
-                statusLabel.setBackground(RED_COLOR);
-                statusLabel.setForeground(WHITE_COLOR);
-                Font font = new Font(null, LoginComposite.FONT_ARIAL, 9, SWT.BOLD);// Arial courier
-                statusLabel.setFont(font);
-            } else if (inuse) {
-                iconLabel.setImage(LOGIN_CRITICAL_IMAGE);
-                onIconLabel.setImage(LOGIN_CRITICAL_IMAGE);
-                colorComposite.setBackground(RED_COLOR);
-                onIconLabel.setBackground(colorComposite.getBackground());
-                statusLabel.setText(Messages.getString("LoginComposite.Workspace_inuse")); //$NON-NLS-1$
-                statusLabel.setFont(font);
-                statusLabel.setBackground(RED_COLOR);
-                statusLabel.setForeground(WHITE_COLOR);
-                Font font = new Font(null, LoginComposite.FONT_ARIAL, 9, SWT.BOLD);// Arial courier
-                statusLabel.setFont(font);
-            } else if (projectViewer == null || projectViewer.getCombo().getItemCount() > 0) {
+            if (projectViewer == null || projectViewer.getCombo().getItemCount() > 0) {
                 iconLabel.setImage(LOGIN_CORRECT_IMAGE);
                 onIconLabel.setImage(LOGIN_CORRECT_IMAGE);
                 colorComposite.setBackground(YELLOW_GREEN_COLOR);
@@ -1466,10 +1435,9 @@ public class LoginComposite extends Composite {
         for (ConnectionBean bean : storedConnections) {
             String user2 = bean.getUser();
             String repositoryId2 = bean.getRepositoryId();
-            String workSpace = bean.getWorkSpace();
             String name = bean.getName();
-            if (user2 != null && !"".equals(user2) && repositoryId2 != null && !"".equals(repositoryId2) && workSpace != null //$NON-NLS-1$ //$NON-NLS-2$
-                    && !"".equals(workSpace) && name != null && !"".equals(name)) { //$NON-NLS-1$ //$NON-NLS-2$
+            if (user2 != null && !"".equals(user2) && repositoryId2 != null && !"".equals(repositoryId2) //$NON-NLS-1$ //$NON-NLS-2$
+                    && name != null && !"".equals(name)) { //$NON-NLS-1$ 
                 boolean valid = Pattern.matches(RepositoryConstants.MAIL_PATTERN, user2);
                 if (valid && RepositoryConstants.REPOSITORY_REMOTE_ID.equals(repositoryId2)) {
                     String url = bean.getDynamicFields().get(RepositoryConstants.REPOSITORY_URL);
@@ -1488,7 +1456,7 @@ public class LoginComposite extends Composite {
                 for (ILoginConnectionService loginConncetion : loginConnectionServices) {
                     for (ConnectionBean bean : storedConnections) {
                         String errorMsg = loginConncetion.checkConnectionValidation(bean.getName(), bean.getDescription(),
-                                bean.getUser(), bean.getPassword(), bean.getWorkSpace(),
+                                bean.getUser(), bean.getPassword(),
                                 bean.getDynamicFields().get(RepositoryConstants.REPOSITORY_URL));
                         if (StringUtils.isEmpty(errorMsg) && bean.isComplete()) {
                             lastRemoteConnections.add(bean);
@@ -1838,7 +1806,7 @@ public class LoginComposite extends Composite {
         // if workspace different,no need to spent time check patches
         try {
             if (repositoryId != null && repositoryId.equals(RepositoryConstants.REPOSITORY_REMOTE_ID)
-                    && isSVNProviderPluginLoadedRemote() && isWorkSpaceSame()) {
+                    && isSVNProviderPluginLoadedRemote()) {
                 JSONObject archivaProperties = getArchivaServicesProperties(getAdminURL());
 
                 // Added by Marvin Wang on Oct. 31, 2012 for bug TDI-22060, more details, refer to the comment following
@@ -1872,7 +1840,7 @@ public class LoginComposite extends Composite {
                         openProjectBtn.setEnabled(false);
                         updateBtn.setEnabled(false);
 
-                    } else if (needUpdate && isWorkSpaceSame()) {
+                    } else if (needUpdate) {
                         iconLabel.setImage(LOGIN_CRITICAL_IMAGE);
                         onIconLabel.setImage(LOGIN_CRITICAL_IMAGE);
                         colorComposite.setBackground(RED_COLOR);
@@ -2027,26 +1995,6 @@ public class LoginComposite extends Composite {
         dialog.updateButtons();
     }
 
-    public boolean isWorkSpaceSame() {
-        ConnectionBean bean = getConnection();
-        if (bean == null) {
-            return false;
-        }
-        String workspace = bean.getWorkSpace();
-        // if (String.valueOf(workspace.charAt(0)).equals("/")) {
-        // workspace = workspace.substring(1, workspace.length());
-        // }
-
-        String defaultPath = new Path(Platform.getInstanceLocation().getURL().getPath()).toFile().getPath();
-        //        String filePath1 = defaultPath.substring(defaultPath.indexOf("/"), defaultPath.length() - 1); //$NON-NLS-1$
-        //        String filePath2 = defaultPath.substring(defaultPath.indexOf("/") + 1, defaultPath.length() - 1); //$NON-NLS-1$
-        if (EnvironmentUtils.isWindowsSystem()) {
-            return workspace.equalsIgnoreCase(defaultPath);
-        } else {
-            return workspace.equals(defaultPath);// workspace.equals(filePath1) || workspace.equals(filePath2);
-        }
-    }
-
     private void updateVisible() {
         List<ILoginConnectionService> loginConnectionServices = LoginConnectionManager.getRemoteConnectionService();
         boolean localConn = false;
@@ -2058,7 +2006,7 @@ public class LoginComposite extends Composite {
                 for (ILoginConnectionService loginConncetion : loginConnectionServices) {
                     errorMsg = loginConncetion.checkConnectionValidation(getConnection().getName(), getConnection()
                             .getDescription(), getConnection().getUser(), getConnection().getPassword(), getConnection()
-                            .getWorkSpace(), getConnection().getDynamicFields().get(RepositoryConstants.REPOSITORY_URL));
+                            .getDynamicFields().get(RepositoryConstants.REPOSITORY_URL));
                     if (StringUtils.isEmpty(errorMsg)) {
                         break;
                     }
@@ -2114,35 +2062,6 @@ public class LoginComposite extends Composite {
             Font font = new Font(null, LoginComposite.FONT_ARIAL, 9, SWT.BOLD);// Arial courier
             statusLabel.setFont(font);
             restartBut.setVisible(false);
-        } else if (!isWorkSpaceSame()) {
-            manageViewer.getControl().setEnabled(false);
-            connectionsViewer.getControl().setEnabled(true);
-            manageProjectsButton.setEnabled(false);
-            openProjectBtn.setEnabled(false);
-            if (projectViewer != null) {
-                projectViewer.getControl().setEnabled(false);
-            }
-            if (fillProjectsBtn != null) {
-                fillProjectsBtn.setEnabled(false);
-            }
-            if (branchesViewer != null) {
-                branchesViewer.getControl().setEnabled(false);
-            }
-            // warningLabel.setVisible(true);
-            restartBut.setVisible(true);
-        } else if (inuse) {
-            manageViewer.getControl().setEnabled(false);
-            manageProjectsButton.setEnabled(false);
-            openProjectBtn.setEnabled(false);
-            //warningLabel.setText(Messages.getString("LoginComposite.Workspace_inuse")); //$NON-NLS-1$
-            // warningLabel.setVisible(true);
-            restartBut.setVisible(false);
-            if (fillProjectsBtn != null) {
-                fillProjectsBtn.setEnabled(false);
-            }
-            if (branchesViewer != null) {
-                branchesViewer.getControl().setEnabled(false);
-            }
         } else {
             manageViewer.getControl().setEnabled(true);
             manageProjectsButton.setEnabled(true);
@@ -2200,10 +2119,9 @@ public class LoginComposite extends Composite {
         if (getConnection() != null) {
             String user2 = getConnection().getUser();
             String repositoryId2 = getConnection().getRepositoryId();
-            String workSpace = getConnection().getWorkSpace();
             String name = getConnection().getName();
-            if (user2 != null && !"".equals(user2) && repositoryId2 != null && !"".equals(repositoryId2) && workSpace != null //$NON-NLS-1$ //$NON-NLS-2$
-                    && !"".equals(workSpace) && name != null && !"".equals(name)) { //$NON-NLS-1$ //$NON-NLS-2$
+            if (user2 != null && !"".equals(user2) && repositoryId2 != null && !"".equals(repositoryId2) //$NON-NLS-1$ //$NON-NLS-2$
+                    && name != null && !"".equals(name)) { //$NON-NLS-1$ 
                 boolean valid = Pattern.matches(RepositoryConstants.MAIL_PATTERN, user2);
                 if (valid && RepositoryConstants.REPOSITORY_REMOTE_ID.equals(repositoryId2)) {
                     String url = getConnection().getDynamicFields().get(RepositoryConstants.REPOSITORY_URL);
@@ -2312,31 +2230,6 @@ public class LoginComposite extends Composite {
                 branchesViewer.getControl().setEnabled(false);
             }
         }
-        // }
-        // updateSandboxButton();
-
-        // if (isTisRemote()) {
-        // ManageItem[] manageElements = getManageElements();
-        // List<ManageItem> toReturn = Arrays.asList(manageElements);
-        // boolean enableSandboxProject = false;
-        // try {
-        // enableSandboxProject = ProxyRepositoryFactory.getInstance().enableSandboxProject();
-        // } catch (PersistenceException e) {
-        // e.printStackTrace();
-        // }
-        // // Sendbox for Tis_Remote
-        // if (enableSandboxProject) {
-        //                toReturn.add(new ManageItem("Create sandbox project") { //$NON-NLS-1$
-        //
-        // @Override
-        // public void run() {
-        // createSendboxProject();
-        // }
-        //
-        // });
-        // }
-        // manageViewer.setInput(getManageElements());
-        // }
     }
 
     protected void populateTOSProjectList() {
@@ -2344,10 +2237,9 @@ public class LoginComposite extends Composite {
         if (getConnection() != null) {
             String user2 = getConnection().getUser();
             String repositoryId2 = getConnection().getRepositoryId();
-            String workSpace = getConnection().getWorkSpace();
             String name = getConnection().getName();
-            if (user2 != null && !"".equals(user2) && repositoryId2 != null && !"".equals(repositoryId2) && workSpace != null //$NON-NLS-1$ //$NON-NLS-2$
-                    && !"".equals(workSpace) && name != null && !"".equals(name)) { //$NON-NLS-1$ //$NON-NLS-2$
+            if (user2 != null && !"".equals(user2) && repositoryId2 != null && !"".equals(repositoryId2) //$NON-NLS-1$ //$NON-NLS-2$
+                    && name != null && !"".equals(name)) { //$NON-NLS-1$ 
                 boolean valid = Pattern.matches(RepositoryConstants.MAIL_PATTERN, user2);
                 if (valid && RepositoryConstants.REPOSITORY_REMOTE_ID.equals(repositoryId2)) {
                     String url = getConnection().getDynamicFields().get(RepositoryConstants.REPOSITORY_URL);
@@ -2470,7 +2362,6 @@ public class LoginComposite extends Composite {
             if (bean == null) {
                 bean = ConnectionBean.getDefaultConnectionBean();
                 bean.setUser("test@talend.com"); //$NON-NLS-1$
-                bean.setWorkSpace(getRecentWorkSpace());
                 bean.setComplete(true);
             }
             return bean;
@@ -2784,6 +2675,10 @@ public class LoginComposite extends Composite {
         return fontsize;
     }
 
+    /**
+     * created by sgandon on 18 août 2014
+     *
+     */
     private static class ArchivaErrorDialog extends MessageDialog {
 
         public ArchivaErrorDialog(Shell parentShell, String dialogTitle, Image dialogTitleImage, String dialogMessage,

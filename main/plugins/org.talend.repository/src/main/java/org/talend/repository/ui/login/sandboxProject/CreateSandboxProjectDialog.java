@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
@@ -103,6 +101,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
     /**
      * @deprecated should be no used after bug 15815.
      */
+    @Deprecated
     private final ConnectionBean currentConnBean;
 
     public CreateSandboxProjectDialog(Shell parentShell, ConnectionBean currentConnBean) {
@@ -215,6 +214,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
 
         ModifyListener listener = new ModifyListener() {
 
+            @Override
             public void modifyText(ModifyEvent e) {
                 if (e.widget == urlText.getTextControl()) {
                     enableSandboxProject = false;
@@ -226,6 +226,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
         projectLabelText.addModifyListener(listener);
         checkBtn.addSelectionListener(new SelectionAdapter() {
 
+            @Override
             public void widgetSelected(SelectionEvent e) {
                 if (urlText.getText().trim().length() > 0) {
                     Context ctx = CorePlugin.getContext();
@@ -289,6 +290,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
     private void addUserListeners() {
         ModifyListener listener = new ModifyListener() {
 
+            @Override
             public void modifyText(ModifyEvent e) {
                 if (e.widget == userLoginText.getTextControl()) {
                     String generateProjectName = ProjectHelper.generateSandbocProjectName(userLoginText.getText());
@@ -340,6 +342,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
         checkProjectLabel(enableProjectLabel);
     }
 
+    @Override
     public void setErrorMessage(String newErrorMessage) {
         super.setErrorMessage(newErrorMessage);
         Button button = getButton(IDialogConstants.OK_ID);
@@ -422,7 +425,6 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
         bean.setPassword(projectAuthorPass);
         bean.setName(generateConnectionName(projectAuthor));
         bean.setDescription(bean.getName());
-        bean.setWorkSpace(new Path(Platform.getInstanceLocation().getURL().getPath()).toFile().getPath());
         bean.getDynamicFields().put(RepositoryConstants.REPOSITORY_URL, url);
         bean.setComplete(true);
 
@@ -451,6 +453,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
         //
         IRunnableWithProgress runnable = new IRunnableWithProgress() {
 
+            @Override
             public void run(final IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
                 Display disp = Display.getCurrent();
                 if (disp == null) {
@@ -458,6 +461,7 @@ public class CreateSandboxProjectDialog extends TitleAreaDialog {
                 }
                 disp.syncExec(new Runnable() {
 
+                    @Override
                     public void run() {
                         monitor.beginTask("Creating...", IProgressMonitor.UNKNOWN); //$NON-NLS-1$
                         Project projectInfor = ProjectHelper.createProject(projectName, projectName, projectLanguage,

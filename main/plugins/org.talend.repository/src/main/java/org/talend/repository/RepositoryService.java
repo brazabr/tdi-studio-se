@@ -289,11 +289,11 @@ public class RepositoryService implements IRepositoryService, IRepositoryContext
      * @see org.talend.repository.model.IRepositoryService#openLoginDialog(org.eclipse.swt.widgets.Shell, boolean)
      */
     @Override
-    public boolean openLoginDialog(Shell shell, boolean inuse) {
+    public boolean openLoginDialog(Shell shell) {
         if (isloginDialogDisabled()) {
             return true;
         }
-        LoginDialog loginDialog = new LoginDialog(shell, inuse);
+        LoginDialog loginDialog = new LoginDialog(shell);
         boolean logged = loginDialog.open() == LoginDialog.OK;
         return logged;
 

@@ -79,8 +79,6 @@ public class LoginDialog extends TrayDialog {
 
     private ConnectionUserPerReader perReader;
 
-    private boolean inuse = false;
-
     private Composite base;
 
     private StackLayout stackLayout;
@@ -94,18 +92,6 @@ public class LoginDialog extends TrayDialog {
      */
     public LoginDialog(Shell parentShell) {
         super(parentShell);
-        perReader = ConnectionUserPerReader.getInstance();
-        setHelpAvailable(false);
-    }
-
-    /**
-     * Construct a new LoginDialog.
-     * 
-     * @param parentShell Parent shell.
-     */
-    public LoginDialog(Shell parentShell, boolean inuse) {
-        super(parentShell);
-        this.inuse = inuse;
         perReader = ConnectionUserPerReader.getInstance();
         setHelpAvailable(false);
     }
@@ -172,11 +158,11 @@ public class LoginDialog extends TrayDialog {
         stackLayout = new StackLayout();
         base.setLayout(stackLayout);
         if (!PluginChecker.isSVNProviderPluginLoaded()) {// tos
-            loginComposite = new LoginComposite(base, SWT.NONE, this, inuse, tosLoginComposite, stackLayout);
+            loginComposite = new LoginComposite(base, SWT.NONE, this, tosLoginComposite, stackLayout);
             loginComposite.populateProjectList();
-            tosLoginComposite = new TOSLoginComposite(base, SWT.NONE, loginComposite, this, inuse);
+            tosLoginComposite = new TOSLoginComposite(base, SWT.NONE, loginComposite, this);
         } else {
-            loginComposite = new LoginComposite(base, SWT.NONE, this, inuse, tosLoginComposite, stackLayout);
+            loginComposite = new LoginComposite(base, SWT.NONE, this, tosLoginComposite, stackLayout);
         }
         GridData data = new GridData(GridData.FILL_BOTH);
         // data.widthHint = INNER_LOGIN_COMPOSITE_WIDTH;

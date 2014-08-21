@@ -14,7 +14,9 @@ package org.talend.repository.ui.login.connections;
 
 import java.util.List;
 
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
+import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -24,6 +26,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Text;
 import org.talend.commons.ui.runtime.image.ImageProvider;
 import org.talend.core.GlobalServiceRegister;
 import org.talend.core.model.general.ConnectionBean;
@@ -58,7 +61,7 @@ public class ConnectionsDialog extends TitleAreaDialog {
 
     public ConnectionsDialog(Shell parentShell) {
         super(parentShell);
-
+        setShellStyle(getShellStyle() | SWT.RESIZE);
         IBrandingService brandingService = (IBrandingService) GlobalServiceRegister.getDefault().getService(
                 IBrandingService.class);
         ImageDescriptor imgDesc = brandingService.getLoginHImage();
@@ -87,6 +90,7 @@ public class ConnectionsDialog extends TitleAreaDialog {
         Composite composite = (Composite) super.createDialogArea(parent);
 
         Composite container = new Composite(composite, SWT.NONE);
+        GridDataFactory.fillDefaults().grab(true, true).applyTo(container);
 
         GridLayout layout = new GridLayout(2, false);
         layout.marginWidth = 0;
@@ -96,16 +100,26 @@ public class ConnectionsDialog extends TitleAreaDialog {
         container.setLayout(layout);
 
         listComposite = new ConnectionsListComposite(container, SWT.NONE);
-        GridData data = new GridData(GridData.FILL_BOTH);
-        data.widthHint = LIST_COMPOSITE_WIDTH;
-        listComposite.setLayoutData(data);
+        GridDataFactory.fillDefaults().hint(LIST_COMPOSITE_WIDTH, SWT.DEFAULT).grab(false, true).applyTo(listComposite);
 
         formComposite = new ConnectionFormComposite(container, SWT.NONE, listComposite, this);
-        data = new GridData(GridData.FILL_BOTH);
-        data.widthHint = FORM_COMPOSITE_WIDTH;
-        data.heightHint = FORM_COMPOSITE_HEIGHT;
-        formComposite.setLayoutData(data);
+        GridDataFactory.fillDefaults().hint(FORM_COMPOSITE_WIDTH, FORM_COMPOSITE_HEIGHT).grab(true, true).applyTo(formComposite);
         listComposite.setConnectionsFormComposite(formComposite);
+
+        Composite workspaceComposite = new Composite(container, SWT.NONE);
+        layout = new GridLayout(2, false);
+        workspaceComposite.setLayout(layout);
+        GridDataFactory.fillDefaults().span(2, 1).grab(true, false).applyTo(workspaceComposite);
+        Label workSpaceLabel = new Label(workspaceComposite, SWT.NONE);
+        workSpaceLabel.setText(Messages.getString("ConnectionFormComposite.WORKSPACE")); //$NON-NLS-1$
+        GridDataFactory.fillDefaults().applyTo(workSpaceLabel);
+
+        Text workSpaceText = new Text(workspaceComposite, SWT.BORDER | SWT.READ_ONLY);
+        String workspacePath = Platform.getLocation().toFile().getAbsolutePath();
+        workSpaceText.setText(workspacePath);
+        GridDataFactory.fillDefaults().grab(true, false).applyTo(workSpaceText);
+        // workSpaceText
+        // .setToolTipText("To change the workspace location, launch the Studio and got to preferences/Startup and shutdown/workspaces");
 
         Label titleBarSeparator = new Label(composite, SWT.HORIZONTAL | SWT.SEPARATOR);
         titleBarSeparator.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));

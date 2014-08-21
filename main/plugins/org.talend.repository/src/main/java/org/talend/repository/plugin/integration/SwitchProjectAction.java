@@ -39,7 +39,7 @@ public class SwitchProjectAction extends Action {
     @Override
     public void run() {
         IRepositoryService repositoryService = CorePlugin.getDefault().getRepositoryService();
-        repositoryService.openLoginDialog(Display.getDefault().getActiveShell(), false);
+        repositoryService.openLoginDialog(Display.getDefault().getActiveShell());
 
     }
 }
