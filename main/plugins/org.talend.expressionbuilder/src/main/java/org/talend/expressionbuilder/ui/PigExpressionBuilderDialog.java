@@ -37,10 +37,12 @@ public class PigExpressionBuilderDialog extends ExpressionBuilderDialog {
 
     private Composite container;
 
-    public PigExpressionBuilderDialog(Shell parentShell, IExpressionDataBean dataBean, INode component, List<Variable> vars) {
+    public PigExpressionBuilderDialog(Shell parentShell, IExpressionDataBean dataBean, INode component, List<Variable> vars,
+            boolean hasPigDataFuCategory) {
         super(parentShell, dataBean, component);
         setShellStyle(this.getShellStyle() | SWT.RESIZE);
         this.defaultVariables = vars;
+        manager.setHasPigDataFuCategory(hasPigDataFuCategory);
     }
 
     @Override
@@ -85,6 +87,7 @@ public class PigExpressionBuilderDialog extends ExpressionBuilderDialog {
      * 
      * @see org.talend.expressionbuilder.ui.IExpressionBuilderDialogController#openDialog()
      */
+    @Override
     public void openDialog(Object obj) {
         if (obj instanceof IExpressionDataBean) {
             List<Variable> vars = new ArrayList<Variable>();

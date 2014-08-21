@@ -36,6 +36,7 @@ public class ExpressionBuilderService implements IExpressionBuilderDialogService
      * @see org.talend.core.ui.expressionbuilder.IExpressionBuilderDialogService#getExpressionBuilderInstance(Composite,
      * IExpressionDataBean, INode)
      */
+    @Override
     public IExpressionBuilderDialogController getExpressionBuilderInstance(Composite parent, IExpressionDataBean dataBean,
             INode component) {
         return new ExpressionBuilderDialog(parent.getShell(), dataBean, component);
@@ -51,8 +52,8 @@ public class ExpressionBuilderService implements IExpressionBuilderDialogService
      */
     @Override
     public IExpressionBuilderDialogController getExpressionBuilderInstance(Composite parent, IExpressionDataBean dataBean,
-            INode component, List<Variable> vars) {
-        return new PigExpressionBuilderDialog(parent.getShell(), dataBean, component, vars);
+            INode component, List<Variable> vars, boolean hasPigDataFuCategory) {
+        return new PigExpressionBuilderDialog(parent.getShell(), dataBean, component, vars, hasPigDataFuCategory);
     }
 
 }
