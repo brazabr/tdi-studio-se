@@ -212,6 +212,12 @@ if (batchMode) {
 %> 
 
 <%
+if(!isDynamic) {
+%>
+	int count_<%=cid%>=0;
+<%
+}
+
 if(!isDynamic && columnList != null && columnList.size() > 0) {
 	String table = ElementParameterParser.getValue(node,"__TABLE__");
 %>
