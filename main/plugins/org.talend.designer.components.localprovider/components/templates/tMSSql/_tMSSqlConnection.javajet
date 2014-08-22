@@ -38,7 +38,7 @@ if(useExistingConnection) {
 
     String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
     <%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
-    java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+    conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
     <%dbLog.conn().connDone(dbLog.var("url"));%>
 <%
 }

@@ -139,8 +139,7 @@ if(("true").equals(useExistingConn)){
 		} else {
 	<%
 	}
-	%
-	>
+	%>
 			<%dbLog.conn().logJDBCDriver(dbLog.str("driverClass"));%>
 			java.lang.Class.forName(<%=driverClass %>);
 			String connectionString_<%=cid %> = <%=jdbcUrl %>;
