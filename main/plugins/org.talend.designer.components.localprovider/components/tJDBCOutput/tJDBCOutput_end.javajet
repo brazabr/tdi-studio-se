@@ -131,9 +131,11 @@ if(("false").equals(useExistingConn)){
 	// Commit if needed
 	if (!("").equals(commitEvery) && !("0").equals(commitEvery)) {
 	    %>
+	if (commitCounter_<%=cid%> > 0) {
 	    <%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
 	    connection_<%=cid%>.commit();
 	    <%dbLog.commit().commitDone(null);%>
+	}
 	    <%
 	}
 	%>

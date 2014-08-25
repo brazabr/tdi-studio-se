@@ -287,7 +287,7 @@ if (!isParallelize) {
 		%>
             java.sql.Statement stmtClear_<%=cid%> = conn_<%=cid%>.createStatement();
     	   	<%dbLog.table().clearTry(dbLog.var("tableName"));%>
-            deletedCount_<%=cid%> = deletedCount_<%=cid%> + stmtClear_<%=cid%>.executeUpdate("<%=manager.getDeleteTableSQL()%>");
+            stmtClear_<%=cid%>.executeUpdate("<%=manager.getDeleteTableSQL()%>");
    	    	<%dbLog.table().clearDone(dbLog.var("tableName"));%>
             stmtClear_<%=cid%>.close();
 		<%

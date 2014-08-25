@@ -17,7 +17,9 @@ imports="
 	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
     if(!("").equals(commitEvery) && !("0").equals(commitEvery)) {
         %>
+    if (commitCounter_<%=cid%> > 0) {
         conn_<%=cid%>.commit();
+    }
         <%
     }	
     if(("INSERT_OR_UPDATE").equals(dataAction)) {

@@ -1106,7 +1106,6 @@ skeleton="../templates/db_output_bulk.skeleton"
                 	<%if((("INSERT").equals(dataAction) || ("UPDATE").equals(dataAction) || ("DELETE").equals(dataAction)) ){
                 	%>
 		                try {
-		                	commitCounter_<%=cid%> = 0;
 		                	<%
 		                	if (isBatchSize) { 
 		                	%>
@@ -1151,6 +1150,7 @@ skeleton="../templates/db_output_bulk.skeleton"
 							%>
 								<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
 			        		conn_<%=cid%>.commit();
+			        		commitCounter_<%=cid%> = 0;
 			        			<%dbLog.commit().commitDone(null);%>
 			        		
 		                }catch(java.sql.SQLException e_<%=cid%>){
