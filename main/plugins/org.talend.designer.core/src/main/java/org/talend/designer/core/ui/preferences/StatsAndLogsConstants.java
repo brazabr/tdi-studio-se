@@ -135,9 +135,7 @@ public class StatsAndLogsConstants {
 
     public static final String[] AS400_VERSION_DISPLAY = new String[] { "V6R1 to V7R2", "V5R3 to V6R1", "V5R2 to V5R4" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
-    // as you can see, the version of AS400_VERSION_DISPLAY[1] and AS400_VERSION_CODE[1] are diffirent, Please see
-    // https://jira.talendforge.org/browse/TDI-30337, maybe better keep the code same with before.
-    public static final String[] AS400_VERSION_CODE = new String[] { "AS400_V6R1_V7R2", "AS400_V5R4_V6R1", "AS400_V5R2_V5R4" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ 
+    public static final String[] AS400_VERSION_CODE = new String[] { "AS400_V6R1_V7R2", "AS400_V5R3_V6R1", "AS400_V5R2_V5R4" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ 
 
     public static final String[] AS400_VERSION_DRIVER = new String[] { "jt400_V6R1.jar", "jt400_V5R3.jar", "jt400_V5R2.jar" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
