@@ -14,14 +14,6 @@ imports="
 	dbLog = new DBLogUtil(node);
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
 	
-	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
-    if(!("").equals(commitEvery) && !("0").equals(commitEvery)) {
-        %>
-    if (commitCounter_<%=cid%> > 0) {
-        conn_<%=cid%>.commit();
-    }
-        <%
-    }	
     if(("INSERT_OR_UPDATE").equals(dataAction)) {
         %>
         if(pstmtUpdate_<%=cid%> != null){
@@ -62,10 +54,18 @@ imports="
         }        
         <%
     }	
+	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
+    if(!("").equals(commitEvery) && !("0").equals(commitEvery)) {
+       %>
+    if (commitCounter_<%=cid%> > 0) {
+        conn_<%=cid%>.commit();
+        <%dbLog.conn().closeTry(null);%>
+        conn_<%=cid%> .close();
+        <%dbLog.conn().closeDone(null);%>
+    }
+    <%
+    }
     %>
-    <%dbLog.conn().closeTry(null);%>
-    conn_<%=cid%> .close();
-    <%dbLog.conn().closeDone(null);%>
     resourceMap.put("finish_<%=cid%>", true);
     <%String rejectConnName = null;%>
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
