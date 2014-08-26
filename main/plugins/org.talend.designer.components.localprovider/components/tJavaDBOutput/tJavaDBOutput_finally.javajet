@@ -32,8 +32,9 @@ imports="
 			}
 			%>
 	    	}
-	    	catch(java.sql.SQLException se)
+	    	catch(java.sql.SQLException sqlEx_<%=cid %>)
 	    	{
+	    		String errorMessage_<%=cid%> = "failed to close the connection in <%=cid %> :" + sqlEx_<%=cid %>.getMessage();
 	            <%dbLog.logPrintedException(dbLog.var("errorMessage"));%>
 	    	}
 		}

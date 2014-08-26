@@ -188,8 +188,8 @@ java.sql.Connection conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=
 <%dbLog.conn().connDone(dbLog.var("url"));%>
 resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
 conn_<%=cid%>.setAutoCommit(false);
-dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 <%
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
 if(columnList != null && columnList.size() > 0) {    
     if(!isParallelize && !("NONE").equals(tableAction)) {
         Manager manager = getManager(dbmsId, cid);

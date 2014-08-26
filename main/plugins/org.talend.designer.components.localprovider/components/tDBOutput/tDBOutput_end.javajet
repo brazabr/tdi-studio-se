@@ -60,9 +60,9 @@ imports="
     if (commitCounter_<%=cid%> > 0) {
         conn_<%=cid%>.commit();
         <%dbLog.conn().closeTry(null);%>
-        conn_<%=cid%> .close();
         <%dbLog.conn().closeDone(null);%>
     }
+	conn_<%=cid%> .close();
     <%
     }
     %>
