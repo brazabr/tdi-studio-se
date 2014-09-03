@@ -45,13 +45,13 @@ import org.talend.designer.gefabstractmap.part.directedit.DirectEditType;
  */
 public abstract class VarEntityFigure extends TableEntityFigure {
 
-    private Label expression;
+    protected Label expression;
 
     private ComboCellLabel type;
 
     private ImageFigure checkImage;
 
-    private VarNodeTextLabel variableLabel;
+    protected VarNodeTextLabel variableLabel;
 
     public VarEntityFigure(TableEntityManager entityManager) {
         super(entityManager);

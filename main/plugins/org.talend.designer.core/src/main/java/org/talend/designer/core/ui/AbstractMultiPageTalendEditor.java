@@ -1156,7 +1156,6 @@ public abstract class AbstractMultiPageTalendEditor extends MultiPageEditorPart 
                                         // e.printStackTrace();
                                         ExceptionHandler.process(e);
                                     }
-                                    nameMap.clear();
                                     manager.setModified(false);
                                 }
                             });
@@ -1329,14 +1328,17 @@ public abstract class AbstractMultiPageTalendEditor extends MultiPageEditorPart 
             isVirtualNode = CorePlugin.getDefault().getMapperService().isVirtualComponent(node);
         } else if (node.getUniqueName().startsWith("tXMLMap")) { //$NON-NLS-1$
             isVirtualNode = CorePlugin.getDefault().getXMLMapperService().isVirtualComponent(node);
-        } else if (node.getUniqueName().startsWith("tHMap")) { //$NON-NLS-1$
-            isVirtualNode = CorePlugin.getDefault().getHMapperService().isVirtualComponent(node);
         } else {
             List<IMultipleComponentManager> multipleComponentManagers = node.getComponent().getMultipleComponentManagers();
             for (IMultipleComponentManager mcm : multipleComponentManagers) {
                 if (!mcm.isLookupMode()) {
                     return true;
                 }
+            }
+        }
+        if (!isVirtualNode) {
+            if (node.getExternalNode() != null) {
+                return node.getExternalNode().isGeneratedAsVirtualComponent();
             }
         }
 

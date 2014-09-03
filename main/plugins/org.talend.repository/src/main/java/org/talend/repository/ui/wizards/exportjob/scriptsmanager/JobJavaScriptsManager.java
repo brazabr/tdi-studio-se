@@ -1473,6 +1473,17 @@ public class JobJavaScriptsManager extends JobScriptsManager {
         return this.getJobScripts(projectName, escapeFileNameSpace(process), version, needJob);
     }
 
+    protected Object getProcessParameterValue(ProcessItem process, String parameterName) {
+        EList<ElementParameterType> parameters = process.getProcess().getParameters().getElementParameter();
+        for (ElementParameterType pt : parameters) {
+            if (pt.getName().equals(parameterName)) {
+                return pt.getValue();
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Gets Job Scripts.
      * 

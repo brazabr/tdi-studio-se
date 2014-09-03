@@ -1,3 +1,4 @@
+
 <%@ jet 
 imports="
 	org.talend.designer.codegen.config.CodeGeneratorArgument
@@ -7,13 +8,13 @@ imports="
 	java.util.List
 " 
 %>
-<%@ include file="../templates/Log4j/Log4jDBConnUtil.javajet"%>
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	
 	String cid = node.getUniqueName();
-	
+	dbLog = new DBLogUtil(node);
 	String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
 	
 	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
@@ -111,64 +112,70 @@ imports="
         }        
         <%
     } else {
-        if ((rejectConnName==null && useBatchSize) && (("INSERT").equals(dataAction) || ("UPDATE").equals(dataAction) || ("DELETE").equals(dataAction))) {
+        %>
+		<%if ((rejectConnName==null && useBatchSize) && (("INSERT").equals(dataAction) || ("UPDATE").equals(dataAction) || ("DELETE").equals(dataAction))) {
 	    %>                
-		    try {
+	    try {
+				int countSum_<%=cid%> = 0;
 				if (pstmt_<%=cid %> != null) {
-					<%log4jCodeGenerateUtil.executeBatch(node,2);%>
-			    	<%if (("INSERT").equals(dataAction)) {
-			    	%>
-			    		insertedCount_<%=cid%> += countSum_<%=cid%>; 
-			    	<%
-			    	}else if (("UPDATE").equals(dataAction)) {
-			    	%>
-			    		updatedCount_<%=cid%> += countSum_<%=cid%>;
-			    	<%
-			    	}else if (("DELETE").equals(dataAction)) {
-			    	%>
-			    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
-			    	<%
-			    	}%>            	    
-				}
-		    }catch (java.sql.BatchUpdateException e_<%=cid%>){
-		    	<%if(("true").equals(dieOnError)) {
-		    		log4jCodeGenerateUtil.logError(node,"fatal","e_"+cid);
-		    	%>
-		    		throw(e_<%=cid%>);
-		    	<%
-		    	}else {
-		    		log4jCodeGenerateUtil.logError(node,"error","e_"+cid);
-		    	%>
-			    	int countSum_<%=cid%> = 0;
-					for(int countEach_<%=cid%>: e_<%=cid%>.getUpdateCounts()) {
+
+						<%dbLog.batch().executeTry(dbLog.str(dataAction));%>
+					for(int countEach_<%=cid%>: pstmt_<%=cid %>.executeBatch()) {
 						countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
 					}
-					<%if (("INSERT").equals(dataAction)) {
-			    	%>
-			    		insertedCount_<%=cid%> += countSum_<%=cid%>; 
-			    	<%
-			    	}else if (("UPDATE").equals(dataAction)) {
-			    	%>
-			    		updatedCount_<%=cid%> += countSum_<%=cid%>;
-			    	<%
-			    	}else if (("DELETE").equals(dataAction)) {
-			    	%>
-			    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
-			    	<%
-			    	}%>
-			    	System.out.println(e_<%=cid%>.getMessage());
+						<%dbLog.batch().executeDone(dbLog.str(dataAction));%>
+
+				}
+		    	<%if (("INSERT").equals(dataAction)) {
+		    	%>
+		    		insertedCount_<%=cid%> += countSum_<%=cid%>; 
 		    	<%
-		    	}%>                	
-			}                                  
+		    	}else if (("UPDATE").equals(dataAction)) {
+		    	%>
+		    		updatedCount_<%=cid%> += countSum_<%=cid%>;
+		    	<%
+		    	}else if (("DELETE").equals(dataAction)) {
+		    	%>
+		    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
+		    	<%
+		    	}%>            	    
+	    }catch (java.sql.BatchUpdateException e){
+	    	<%if(("true").equals(dieOnError)) {
+	    	%>
+	    		throw(e);
+	    	<%
+	    	}else {
+	    	%>
+	    	int countSum_<%=cid%> = 0;
+			for(int countEach_<%=cid%>: e.getUpdateCounts()) {
+				countSum_<%=cid%> += (countEach_<%=cid%> < 0 ? 0 : countEach_<%=cid%>);
+			}
+			<%if (("INSERT").equals(dataAction)) {
+	    	%>
+	    		insertedCount_<%=cid%> += countSum_<%=cid%>; 
+	    	<%
+	    	}else if (("UPDATE").equals(dataAction)) {
+	    	%>
+	    		updatedCount_<%=cid%> += countSum_<%=cid%>;
+	    	<%
+	    	}else if (("DELETE").equals(dataAction)) {
+	    	%>
+	    	    deletedCount_<%=cid%> += countSum_<%=cid%>;
+	    	<%
+	    	}
+	    	dbLog.logPrintedException("e.getMessage()");%>
+	    	System.err.println(e.getMessage());
+	    	<%
+	    	}%>                	
+		}                                  
 	    <%
-	    }
-	    %>   
+	    }%>   
         if(pstmt_<%=cid %> != null) {
 
             pstmt_<%=cid %>.close();
             
         }        
-	<%
+        <%
     }   
     %>
 
@@ -177,13 +184,23 @@ imports="
 	{
 		if(!("").equals(commitEvery) && !("0").equals(commitEvery))
 		{
-			log4jCodeGenerateUtil.commit(node);
+		%>
+		if (commitCounter_<%=cid%> > 0) {
+			<%dbLog.commit().commitTry(null, dbLog.var("commitCounter"));%>
+			conn_<%=cid%>.commit();
+			<%dbLog.commit().commitDone(null);%>
 		}
-		log4jCodeGenerateUtil.close(node);
-		%>	
+		<%
+		}
+		
+		dbLog.conn().closeTry(null);%>
+    	conn_<%=cid%> .close();
+    	<%dbLog.conn().closeDone(null);%>
     	resourceMap.put("finish_<%=cid%>", true);
     	<%
 	}
     %>
 
 <%@ include file="../templates/DB/Output/DBOutputEndGlobalVars.javajet"%>
+
+<%dbLog.endWork();%>

@@ -1,67 +1,231 @@
-<%@ jet
+<%@ jet 
 imports="
 		org.talend.designer.codegen.config.CodeGeneratorArgument
 		org.talend.core.model.process.INode
-		org.talend.core.model.process.ElementParameterParser
-		org.talend.core.model.metadata.IMetadataTable
-		org.talend.core.model.metadata.types.JavaTypesManager
-		org.talend.core.model.metadata.MappingTypeRetriever
-		org.talend.core.model.metadata.MetadataTalendType
 		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.ElementParameterParser  
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.MappingTypeRetriever
+        org.talend.core.model.metadata.MetadataTalendType		
 		java.util.List
 		java.util.ArrayList
 		java.util.Map
 		java.util.HashMap
-"
+" 
 skeleton="../templates/db_output_bulk.skeleton"
 %>
-<%@ include file="../templates/DB/Output/HelpClass.javajet"%>
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
-	class DBOutputBeginUtil extends DefaultDBOutputUtil{
-		private String insertColName;
-		public void beforeComponentProcess(INode node){
-			super.beforeComponentProcess(node);
-			cid = node.getUniqueName();
-			useBatchSize = ("true").equals(ElementParameterParser.getValue(node,"__BATCH_MODE__"));
-		}
-		public String getDirverClassName(INode node){
-			String db_version = ElementParameterParser.getValue(node, "__DB_VERSION__");
-			if("VERTICA_7_0_X".equals(db_version) || "VERTICA_6_1_X".equals(db_version) || "VERTICA_6_0".equals(db_version) || "VERTICA_5_1".equals(db_version)){
-				return "com.vertica.jdbc.Driver";
-			}else{
-				return "com.vertica.Driver";
-			}
-		}
-		public void setURL(INode node) {
-			if(dbproperties == null || ("\"\"").equals(dbproperties) || ("").equals(dbproperties)) {
-		%>
-				String url_<%=cid %> = "jdbc:vertica://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%>;
-		<%
-			} else {
-		%>
-				String url_<%=cid %> = "jdbc:vertica://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%> + "?" + <%=dbproperties%>;
-		<%
-			}
-		}
-		public void defineSchema(INode node,Manager manager){
-			defineSchemaTable(node,manager,"dbschema_");
-		}
-		public void defineBatchSize(INode node){
-			if (useBatchSize) {
-				if(!("").equals(batchSize)&&!("0").equals(batchSize)) {
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	
+	final String cid = node.getUniqueName();
+	
+	dbLog = new DBLogUtil(node);
+	
+    List<Map<String, String>> addCols =
+            (List<Map<String,String>>)ElementParameterParser.getObjectValue(
+                node,"__ADD_COLS__" );
+
+    boolean useFieldOptions = ("true").equals(ElementParameterParser.getValue(node, "__USE_FIELD_OPTIONS__"));
+    
+    List<Map<String, String>> fieldOptions = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__FIELD_OPTIONS__");    
+    
+    String dbname= ElementParameterParser.getValue(node, "__DBNAME__");
+    
+    String dbhost = ElementParameterParser.getValue(node, "__HOST__");
+    
+	String dbport = ElementParameterParser.getValue(node, "__PORT__");
+	
+	String dbuser= ElementParameterParser.getValue(node, "__USER__");
+	
+	String dbproperties = ElementParameterParser.getValue(node, "__PROPERTIES__");
+	
+    final String dbmsId = ElementParameterParser.getValue(node,"__MAPPING__");
+    
+	String tableName = ElementParameterParser.getValue(node,"__TABLE__");
+	
+	final String dataAction = ElementParameterParser.getValue(node,"__DATA_ACTION__");
+	
+	final String tableAction = ElementParameterParser.getValue(node,"__TABLE_ACTION__");
+	
+	boolean createProjection = "true".equals(ElementParameterParser.getValue(node,"__CREATE_PROJECTION__"))&&
+		!"true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__PARALLELIZE__")); 
+	
+	String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
+
+	boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
+	
+	boolean batchMode = ("true").equals(ElementParameterParser.getValue(node, "__BATCH_MODE__"));
+	
+	String batchSize = ElementParameterParser.getValue(node, "__BATCH_SIZE__");
+	
+	String dbschema = ElementParameterParser.getValue(node,"__SCHEMA_DB__");
+
+   	String db_version = ElementParameterParser.getValue(node, "__DB_VERSION__");
+    dbLog.startWork();
+    dbLog.logCompSetting();
+%>
+
+int nb_line_<%=cid%> = 0;
+int nb_line_update_<%=cid%> = 0;
+int nb_line_inserted_<%=cid%> = 0;
+int nb_line_deleted_<%=cid%> = 0;
+int nb_line_rejected_<%=cid%> = 0;
+int nb_line_copied_<%=cid%> = 0;
+
+int deletedCount_<%=cid%>=0;
+int updatedCount_<%=cid%>=0;
+int insertedCount_<%=cid%>=0;
+int rejectedCount_<%=cid%>=0;
+int copiedCount_<%=cid%>=0;
+
+String tableName_<%=cid%> = null;
+String dbschema_<%=cid%> = null;
+boolean whetherReject_<%=cid%> = false;
+<%
+Manager manager = getManager(dbmsId, cid, node);
+
+boolean isDynamic = false;
+List<IMetadataTable> metadatas = node.getMetadataList();
+if ((metadatas!=null)&&(metadatas.size()>0)) {
+    IMetadataTable metadata = metadatas.get(0);
+	isDynamic = metadata.isDynamicSchema(); 
+}
+
+List<IMetadataColumn> columnList = getColumnList(node);
+List<Column> stmtStructure = null;
+if(columnList != null && columnList.size() > 0) {
+    stmtStructure = getManager(dbmsId, cid).createColumnList(columnList, useFieldOptions, fieldOptions, addCols);
+    isDynamic = isDynamic && !getManager(dbmsId, cid).isDynamicColumnReplaced();
+}
+%>
+
+<%
+if(("UPDATE").equals(dataAction) || ("INSERT_OR_UPDATE").equals(dataAction) || ("UPDATE_OR_INSERT").equals(dataAction)) {
+    int updateKeyCount = 0;
+    if(stmtStructure != null) {
+        for(Column column : stmtStructure) {
+            if(column.isUpdateKey() && !column.isDynamic()) {
+                updateKeyCount++;
+            }
+        }
+        %>
+        int updateKeyCount_<%=cid%> = <%=updateKeyCount%>;
+        if(updateKeyCount_<%=cid%> < 1) {
+            throw new RuntimeException("For update, Schema must have a key");
+        }
+        <%
+    }
+} else if(("DELETE").equals(dataAction)) {
+    int deleteKeyCount = 0;
+    if(stmtStructure != null) {
+        for(Column column : stmtStructure) {
+            if(column.isDeleteKey() && !column.isDynamic()) {
+                deleteKeyCount++;
+            }
+        }
+        %>
+        int deleteKeyCount_<%=cid%> = <%=deleteKeyCount%>;
+        if(deleteKeyCount_<%=cid%> < 1) {
+            throw new RuntimeException("For delete, Schema must have a key");
+        }
+        <%
+    }
+}
+%> 
+		    java.sql.Connection conn_<%=cid%> = null;
+		   <%
+			    String useExistingConn = ElementParameterParser.getValue(node,"__USE_EXISTING_CONNECTION__");
+			    if(("true").equals(useExistingConn)) {
+			        String connection = ElementParameterParser.getValue(node,"__CONNECTION__");
+			        String conn = "conn_" + connection;
+		   			String schema = "dbschema_" + connection;
 			%>
-				int batchSize_<%=cid%> = <%=batchSize%>;
-				int batchSizeCounter_<%=cid%>=0;
+				dbschema_<%=cid%> = (String)globalMap.get("<%=schema%>");
+		        conn_<%=cid%> = (java.sql.Connection)globalMap.get("<%=conn%>");
+		        <%dbLog.conn().useExistConn("conn_"+cid+".getMetaData().getURL()", "conn_"+cid+".getMetaData().getUserName()");%>
+		   <%
+		    } else {
+		   %>
+		   		 dbschema_<%=cid%> = <%=dbschema%>;	
+			<%
+				if("VERTICA_7_0_X".equals(db_version) || "VERTICA_6_1_X".equals(db_version) || "VERTICA_6_0".equals(db_version) || "VERTICA_5_1".equals(db_version)){
+			%>
+	 				String driverClass_<%=cid%> = "com.vertica.jdbc.Driver";
+			<%
+				}else{
+			%>
+					String driverClass_<%=cid%> = "com.vertica.Driver";
 			<%
 				}
-			}
-		}
-		public void defineOtherParameters(INode node){
-		%>
-			int nb_line_copied_<%=cid%> = 0;
-			int copiedCount_<%=cid%>=0;
-		<%
-		}
+			%>
+				java.lang.Class.forName(driverClass_<%=cid%>);
+        		<%dbLog.conn().logJDBCDriver(dbLog.var("driverClass"));%>
+				<%if(dbproperties == null || ("\"\"").equals(dbproperties) || ("").equals(dbproperties)) {%>
+				String url_<%=cid %> = "jdbc:vertica://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%>;
+				<%} else {%>
+				String url_<%=cid %> = "jdbc:vertica://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%> + "?" + <%=dbproperties%>;
+				<%}%>
+			
+				String dbUser_<%=cid %> = <%=dbuser%>;
+				<%
+				String passwordFieldName = "__PASS__";
+				%>
+
+				<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
+
+				String dbPwd_<%=cid %> = decryptedPassword_<%=cid%>;
+				<%dbLog.conn().connTry(dbLog.var("url"), dbLog.var("dbUser"));%>	
+				conn_<%=cid%> = java.sql.DriverManager.getConnection(url_<%=cid %>,dbUser_<%=cid%>,dbPwd_<%=cid%>);
+				<%dbLog.conn().connDone(dbLog.var("url"));%>
+				resourceMap.put("conn_<%=cid%>", conn_<%=cid%>);
+			<%
+				}
+			%>
+			
+if(dbschema_<%=cid%> == null || dbschema_<%=cid%>.trim().length() == 0) {
+    tableName_<%=cid%> = <%=tableName%>;
+} else {
+    tableName_<%=cid%> = dbschema_<%=cid%> + "." + <%=tableName%>;    
+}
+<%
+boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node,"__USE_EXISTING_CONNECTION__"));
+if(!useExistingConnection && !("").equals(commitEvery) && !("0").equals(commitEvery)) {
+%>
+conn_<%=cid%>.setAutoCommit(false);
+        
+int commitEvery_<%=cid%> = <%=commitEvery%>;
+        
+int commitCounter_<%=cid%> = 0;        
+<%
+}
+dbLog.commit().logAutoCommit("conn_"+cid+".getAutoCommit()");
+if (batchMode) {
+    if(!("").equals(batchSize)&&!("0").equals(batchSize)) {
+%>
+   int batchSize_<%=cid%> = <%=batchSize%>;
+   int batchSizeCounter_<%=cid%>=0;
+<%   
+   }
+}
+%> 
+
+<%
+if(!isDynamic) {
+%>
+	int count_<%=cid%>=0;
+<%
+}
+
+if(!isDynamic && columnList != null && columnList.size() > 0) {
+	String table = ElementParameterParser.getValue(node,"__TABLE__");
+%>
+	<%@ include file="../templates/_tableActionForOutput.javajet"%>
+<%
+	
+	class DBOutputUtil {
+	
 		private void createProjection(boolean createProjection,List<Column> stmtStructure){
 			if(createProjection){
 				StringBuilder columnListStr = new StringBuilder();
@@ -93,6 +257,7 @@ skeleton="../templates/db_output_bulk.skeleton"
 			<%
 			}
 		}
+		
 		public void actionOnTable(INode node,List<Column> stmtStructure){
 			boolean createProjection = "true".equals(ElementParameterParser.getValue(node,"__CREATE_PROJECTION__"))&&
 				!"true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__PARALLELIZE__"));
@@ -110,60 +275,104 @@ skeleton="../templates/db_output_bulk.skeleton"
 				}
 			}
 		}
-		public void insert(INode node,Manager manager,StringBuilder insertColName,StringBuilder insertValueStmt){
-			Map<String, String> hintsValues = hint(node);
-			boolean useHintOptions = ("true").equals(ElementParameterParser.getValue(node,"__USE_HINT_OPTIONS__"));
-			%>
-			String insert_<%=cid%> = "INSERT INTO " + tableName_<%=cid%> + " (<%=insertColName.toString()%>) VALUES (<%=insertValueStmt.toString()%>)";
-			java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
-			<%
-			if(useBatchSize){
-			%>
-				int batchCount_<%=cid %> = 0;
-			<%
-			}
-		}
-
-		public void prepareDataActionMore(INode node,Manager manager,StringBuilder insertColName,StringBuilder insertValueStmt,StringBuilder updateSetStmt,StringBuilder updateWhereStmt){
-			if (("COPY").equals(dataAction)) {
-				boolean abortOnError = "true".equals(ElementParameterParser.getValue(node,"__ABORT_ON_ERROR__"));
-				String rejectMax = ElementParameterParser.getValue(node,"__REJECT_MAX__");
-				String exceptionsPath = ElementParameterParser.getValue(node,"__EXCEPTIONS_PATH__");
-				String rejectsPath = ElementParameterParser.getValue(node,"__REJECTED_DATA__");
-				boolean noCommit = "true".equals(ElementParameterParser.getValue(node,"__NO_COMMIT__"));
-				String exceptionNode = ElementParameterParser.getValue(node,"__EXCEPTIONS_NODE__");
-				String rejectsNode = ElementParameterParser.getValue(node,"__REJECTED_NODE__");
-				rejectMax = rejectMax == null || "".equals(rejectMax.trim()) ? "" : " REJECTMAX "+rejectMax+" ";
-				exceptionsPath = exceptionsPath == null || "".equals(exceptionsPath.trim()) ? "" : " EXCEPTIONS '\"+"+exceptionsPath+"+\"' ";
-				exceptionNode = exceptionNode == null || "".equals(exceptionNode.trim()) ? "" : " ON "+exceptionNode+" ";
-				rejectsPath = rejectsPath == null || "".equals(rejectsPath.trim()) ? "" : " REJECTED DATA '\"+"+rejectsPath+"+\"' ";
-				rejectsNode = rejectsNode == null || "".equals(rejectsNode.trim()) ? "" : " ON "+rejectsNode+" ";
-				String exceptionString = !"".equals(exceptionsPath) ? exceptionsPath + exceptionNode : "";
-				String rejectString = !"".equals(rejectsPath) ? rejectsPath + rejectsNode : "";
-				String noComm = !noCommit ? "" : " NO COMMIT ";
-				String abort = abortOnError ? " ABORT ON ERROR " : "";
-				%>
-				StringBuilder stmtBuilder_<%=cid%> = new StringBuilder();
-				java.sql.Statement stmt_<%=cid%> = conn_<%=cid%>.createStatement();
-				String template_<%=cid%> = "COPY " + tableName_<%=cid%> +" (<%=insertColName.toString()%>)" + " FROM STDIN UNCOMPRESSED WITH DELIMITER ';' RECORD TERMINATOR '\n' ENCLOSED BY '|' NULL AS '' <%=rejectMax%><%=exceptionString%><%=rejectString%><%=abort%>DIRECT<%=noComm%>";
-			<%
-			}
-		}
-
+		
 	}
-	dbOutputBeginUtil = new DBOutputBeginUtil();
-%>
-<%@ include file="../templates/DB/Output/AbstractDBOutputBegin.javajet"%>
+	
+	DBOutputUtil dbOutputUtil = new DBOutputUtil();
+	dbOutputUtil.actionOnTable(node,stmtStructure);
+	
+    Map<String, StringBuilder> actionSQLMap = getManager(dbmsId, cid).createProcessSQL(stmtStructure);
+    StringBuilder insertColName = actionSQLMap.get(INSERT_COLUMN_NAME);   
+    StringBuilder insertValueStmt = actionSQLMap.get(INSERT_VALUE_STMT);    
+    StringBuilder updateSetStmt = actionSQLMap.get(UPDATE_SET_STMT);    
+    StringBuilder updateWhereStmt = actionSQLMap.get(UPDATE_WHERE_STMT);
+    StringBuilder deleteWhereStmt = actionSQLMap.get(DELETE_WHERE_STMT);
+    if(("INSERT").equals(dataAction)) {
+        %>
+        String insert_<%=cid%> = "INSERT INTO " + tableName_<%=cid%> + " (<%=insertColName.toString()%>) VALUES (<%=insertValueStmt.toString()%>)";
+        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
 <%
-	if(isDynamic) {
-		if ("COPY".equals(dataAction)) {
-%>
-			java.sql.Statement stmt_<%=cid%> = null;
-			StringBuilder stmtBuilder_<%=cid%> = null;
-			String template_<%=cid%> = null;
-<%
-		}
+		if(batchMode){
+		%>
+        int batchCount_<%=cid %> = 0;
+        <%
+        }
+    } else if (("UPDATE").equals(dataAction)) {
+        %>
+        String update_<%=cid%> = "UPDATE " + tableName_<%=cid%> + " SET <%=updateSetStmt.toString()%> WHERE <%=updateWhereStmt.toString()%>";
+        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(update_<%=cid%>);
+        <%      
+    } else if (("INSERT_OR_UPDATE").equals(dataAction)) {
+        %>
+        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement("SELECT COUNT(1) FROM " + tableName_<%=cid%> + " WHERE <%=updateWhereStmt.toString()%>");
+        String insert_<%=cid%> = "INSERT INTO " + tableName_<%=cid%> + " (<%=insertColName.toString()%>) VALUES (<%=insertValueStmt.toString()%>)";
+        java.sql.PreparedStatement pstmtInsert_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);
+        String update_<%=cid%> = "UPDATE " + tableName_<%=cid%> + " SET <%=updateSetStmt.toString()%> WHERE <%=updateWhereStmt.toString()%>";
+        java.sql.PreparedStatement pstmtUpdate_<%=cid %> = conn_<%=cid%>.prepareStatement(update_<%=cid%>);    
+        <%
+    } else if (("UPDATE_OR_INSERT").equals(dataAction)) {
+        %>
+        String update_<%=cid%> = "UPDATE " + tableName_<%=cid%> + " SET <%=updateSetStmt.toString()%> WHERE <%=updateWhereStmt.toString()%>";
+        java.sql.PreparedStatement pstmtUpdate_<%=cid %> = conn_<%=cid%>.prepareStatement(update_<%=cid%>);
+        String insert_<%=cid%> = "INSERT INTO " + tableName_<%=cid%> + " (<%=insertColName.toString()%>) VALUES (<%=insertValueStmt.toString()%>)";
+        java.sql.PreparedStatement pstmtInsert_<%=cid %> = conn_<%=cid%>.prepareStatement(insert_<%=cid%>);        
+        <%            
+    } else if (("DELETE").equals(dataAction)) {
+        %>
+        String delete_<%=cid%> = "DELETE  FROM " + tableName_<%=cid%> + " WHERE <%=deleteWhereStmt.toString()%>";
+        java.sql.PreparedStatement pstmt_<%=cid %> = conn_<%=cid%>.prepareStatement(delete_<%=cid%>);
+        <%      
+    } else if (("COPY").equals(dataAction)) {
+		boolean abortOnError = "true".equals(ElementParameterParser.getValue(node,"__ABORT_ON_ERROR__"));
+		String rejectMax = ElementParameterParser.getValue(node,"__REJECT_MAX__");
+		String exceptionsPath = ElementParameterParser.getValue(node,"__EXCEPTIONS_PATH__");
+		String rejectsPath = ElementParameterParser.getValue(node,"__REJECTED_DATA__");
+		boolean noCommit = "true".equals(ElementParameterParser.getValue(node,"__NO_COMMIT__"));
+		String exceptionNode = ElementParameterParser.getValue(node,"__EXCEPTIONS_NODE__");
+		String rejectsNode = ElementParameterParser.getValue(node,"__REJECTED_NODE__");	
+		rejectMax = rejectMax == null || "".equals(rejectMax.trim()) ? "" : " REJECTMAX "+rejectMax+" ";
+		exceptionsPath = exceptionsPath == null || "".equals(exceptionsPath.trim()) ? "" : " EXCEPTIONS '\"+"+exceptionsPath+"+\"' ";
+		exceptionNode = exceptionNode == null || "".equals(exceptionNode.trim()) ? "" : " ON "+exceptionNode+" ";
+		rejectsPath = rejectsPath == null || "".equals(rejectsPath.trim()) ? "" : " REJECTED DATA '\"+"+rejectsPath+"+\"' ";
+		rejectsNode = rejectsNode == null || "".equals(rejectsNode.trim()) ? "" : " ON "+rejectsNode+" ";
+		String exceptionString = !"".equals(exceptionsPath) ? exceptionsPath + exceptionNode : "";
+		String rejectString = !"".equals(rejectsPath) ? rejectsPath + rejectsNode : "";
+		String noComm = !noCommit ? "" : " NO COMMIT ";
+		String abort = abortOnError ? " ABORT ON ERROR " : "";
+	    %>
+		StringBuilder stmtBuilder_<%=cid%> = new StringBuilder();
+        java.sql.Statement stmt_<%=cid%> = conn_<%=cid%>.createStatement();	
+        String template_<%=cid%> = "COPY " + tableName_<%=cid%> +" (<%=insertColName.toString()%>)"
+						          + " FROM STDIN UNCOMPRESSED WITH DELIMITER ';' RECORD TERMINATOR '\n' ENCLOSED BY '|' NULL AS '' <%=rejectMax%><%=exceptionString%><%=rejectString%><%=abort%>DIRECT<%=noComm%>";
+		<%
 	}
+    if(isEnableDebug) {
+        %>
+        StringBuffer query_<%=cid%> = null;
+       	<%@ include file="../templates/DB/Output/splitSQLForAllDBInBegin.javajet" %>
+        <%
+    }    
+}
+
+if(isDynamic) {
 %>
-
-
+	java.sql.PreparedStatement pstmt_<%=cid %> =null;
+	java.sql.PreparedStatement pstmtInsert_<%=cid %> =null;
+	java.sql.PreparedStatement pstmtUpdate_<%=cid %> =null;
+<%
+	if(isEnableDebug) {
+%>
+		StringBuffer query_<%=cid%> = null;
+		<%@ include file="../templates/DB/Output/splitSQLForAllDBInDynamicBegin.javajet" %>
+<%
+	}
+	
+	if ("COPY".equals(dataAction)) {
+%>
+		java.sql.Statement stmt_<%=cid%> = null;
+		StringBuilder stmtBuilder_<%=cid%> = null;
+		String template_<%=cid%> = null;
+<%
+	}
+}
+%>

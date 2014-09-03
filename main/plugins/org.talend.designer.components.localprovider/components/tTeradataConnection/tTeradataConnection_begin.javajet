@@ -43,5 +43,6 @@ imports="
 	globalMap.put("dbname_<%=cid%>", <%=dbname%>);
 	globalMap.put("username_<%=cid%>", dbUser_<%=cid%>);
 	globalMap.put("password_<%=cid%>", dbPwd_<%=cid%>);
+	globalMap.put("url_<%=cid%>", url_<%=cid%>);<%//only for log4j%>
 
 <%@ include file="../tTeradataInput/TeradataQueryBandBegin.javajet"%>

@@ -14,7 +14,6 @@ package org.talend.expressionbuilder.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +36,8 @@ public class CategoryManager {
 
     private Category defaultCategory;
 
+    private boolean hasPigDataFuCategory = false;
+
     public java.util.List<Category> getInputCategory(String type) {
         FunctionManager functionManager = null;
         if (JavaUtils.JAVA_PIG_DIRECTORY.equals(type)) {
@@ -54,8 +55,8 @@ public class CategoryManager {
         Category userDefined = new Category();
         userDefined.setName(Messages.getString("CategoryManager.user.defined")); //$NON-NLS-1$
 
-        for (Iterator<Category> iter = categories.iterator(); iter.hasNext();) {
-            final List<Function> functions = iter.next().getFunctions();
+        for (Category category : categories) {
+            final List<Function> functions = category.getFunctions();
             allCategories.addFunctions(functions);
             for (Function function : functions) {
                 if (function.isUserDefined()) {
@@ -76,9 +77,7 @@ public class CategoryManager {
             input.add(userDefined);
         }
         input.addAll(categories);
-
         return input;
-
     }
 
     /**
@@ -92,8 +91,7 @@ public class CategoryManager {
 
         Map<String, List<Function>> map = new HashMap<String, List<Function>>();
 
-        for (Iterator<TalendType> iter = talendTypes.iterator(); iter.hasNext();) {
-            TalendType type = iter.next();
+        for (TalendType type : talendTypes) {
             List functions = type.getFunctions();
             for (int i = 0; i < functions.size(); i++) {
                 Function func = (Function) functions.get(i);
@@ -101,6 +99,10 @@ public class CategoryManager {
                 // if there's no category defination for the funtion set it as default category.
                 if (func.getCategory() == null || AbstractFunctionParser.EMPTY_STRING.equals(func.getCategory())) {
                     func.setCategory(DEFAULT_CATEGORY);
+                }
+
+                if (hasPigDataFuCategory && "User Defined".equals(func.getCategory())) {//$NON-NLS-1$
+                    continue;
                 }
 
                 List<Function> funcs = map.get(func.getCategory());
@@ -115,12 +117,14 @@ public class CategoryManager {
             }
         }
 
-        for (Iterator<String> iter = map.keySet().iterator(); iter.hasNext();) {
-            String categoryName = iter.next();
+        for (String categoryName : map.keySet()) {
             Category category = new Category();
             category.setName(categoryName);
             category.setFunctions(map.get(categoryName));
-
+            // only pig var table has the DataFu category
+            if (!hasPigDataFuCategory && "Pig DataFu Functions".equals(categoryName)) {//$NON-NLS-1$
+                continue;
+            }
             categories.add(category);
             if (DEFAULT_CATEGORY.equals(category.getName())) {
                 defaultCategory = category;
@@ -129,4 +133,23 @@ public class CategoryManager {
 
         return categories;
     }
+
+    /**
+     * Getter for hasPigDataFuCategory.
+     * 
+     * @return the hasPigDataFuCategory
+     */
+    public boolean isHasPigDataFuCategory() {
+        return this.hasPigDataFuCategory;
+    }
+
+    /**
+     * Sets the hasPigDataFuCategory.
+     * 
+     * @param hasPigDataFuCategory the hasPigDataFuCategory to set
+     */
+    public void setHasPigDataFuCategory(boolean hasPigDataFuCategory) {
+        this.hasPigDataFuCategory = hasPigDataFuCategory;
+    }
+
 }

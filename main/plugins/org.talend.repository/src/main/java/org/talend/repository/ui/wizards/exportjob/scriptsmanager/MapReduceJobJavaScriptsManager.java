@@ -22,6 +22,8 @@ import java.util.Map;
 
 import org.eclipse.core.runtime.CoreException;
 import org.talend.commons.exception.CommonExceptionHandler;
+import org.talend.core.hadoop.version.EHadoopDistributions;
+import org.talend.core.model.properties.ProcessItem;
 import org.talend.core.model.utils.JavaResourcesHelper;
 import org.talend.core.repository.constants.FileConstants;
 
@@ -29,6 +31,8 @@ import org.talend.core.repository.constants.FileConstants;
  * Created by Marvin Wang on Mar 23, 2013.
  */
 public class MapReduceJobJavaScriptsManager extends JobJavaScriptsManager {
+
+    private boolean isHDI;
 
     /**
      * DOC marvin MapReduceJobJavaScriptsManager constructor comment.
@@ -42,6 +46,12 @@ public class MapReduceJobJavaScriptsManager extends JobJavaScriptsManager {
     public MapReduceJobJavaScriptsManager(Map<ExportChoice, Object> exportChoiceMap, String contextName, String launcher,
             int statisticPort, int tracePort) {
         super(exportChoiceMap, contextName, launcher, statisticPort, tracePort);
+    }
+
+    @Override
+    protected List<URL> getJobScripts(ProcessItem process, String version, boolean needJob) {
+        setHDI(isHDInsight(process));
+        return super.getJobScripts(process, version, needJob);
     }
 
     /**
@@ -70,6 +80,9 @@ public class MapReduceJobJavaScriptsManager extends JobJavaScriptsManager {
 
             // Do not remove the context from job.jar.
             jarbuilder.setExcludeDir(null);
+            if (isHDI) {
+                jarbuilder.setLibPath(getLibPath(true));
+            }
             jarbuilder.buildJar();
             list.add(jarFile.toURI().toURL());
         } catch (IOException e) {
@@ -79,6 +92,18 @@ public class MapReduceJobJavaScriptsManager extends JobJavaScriptsManager {
         }
 
         return list;
+    }
+
+    public void setHDI(boolean isHDI) {
+        this.isHDI = isHDI;
+    }
+
+    private boolean isHDInsight(ProcessItem process) {
+        Object distribution = getProcessParameterValue(process, "DISTRIBUTION");//$NON-NLS-1$
+        if (EHadoopDistributions.MICROSOFT_HD_INSIGHT.getName().equals(distribution)) {
+            return true;
+        }
+        return false;
     }
 
 }

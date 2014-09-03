@@ -271,7 +271,7 @@ public class SchemaTypeController extends AbstractRepositoryController {
                     newButton = btn;
                 }
                 Button retrieveSchemaButton = createAdditionalButton(subComposite, newButton, btnSize, param, RETRIEVE_SCHEMA,
-                        RETRIEVE_SCHEMA, top, param.isReadOnly());
+                        RETRIEVE_SCHEMA, top, !param.isReadOnly());
                 retrieveSchemaButton.setData(NAME, RETRIEVE_SCHEMA);
 
                 lastControlUsed = retrieveSchemaButton;
@@ -287,7 +287,7 @@ public class SchemaTypeController extends AbstractRepositoryController {
                 }
                 Button copySchemaButton = createAdditionalButton(subComposite, newButton, btnSize, param,
                         Messages.getString("SchemaController.copyChildSchema"), Messages //$NON-NLS-1$
-                                .getString("SchemaController.copyChildSchema.tooltip"), top, param.isReadOnly()); //$NON-NLS-1$
+                                .getString("SchemaController.copyChildSchema.tooltip"), top, !param.isReadOnly()); //$NON-NLS-1$
                 copySchemaButton.setData(NAME, COPY_CHILD_COLUMNS);
 
                 lastControlUsed = copySchemaButton;

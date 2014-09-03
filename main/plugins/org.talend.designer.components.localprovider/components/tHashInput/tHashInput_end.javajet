@@ -152,6 +152,9 @@
     		mf_<%=cid %>.clearCache("tHashFile_<%=jobName %>_" + pid +"_<%=tHashOutputName %>");
     	<%	
     	}
+    	%>
+		org.talend.designer.components.hashfile.common.MapHashFile.resourceLockMap.remove("tHashFile_<%=jobName %>_" + pid +"_<%=tHashOutputName %>");<%//release lock the tHashOutput used%>
+	<%
 	}
 	%>
 

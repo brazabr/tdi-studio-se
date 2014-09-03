@@ -48,6 +48,7 @@ import org.talend.commons.expressionbuilder.Variable;
 import org.talend.commons.utils.generation.JavaUtils;
 import org.talend.core.model.utils.TalendPropertiesUtil;
 import org.talend.designer.rowgenerator.data.Function;
+import org.talend.designer.rowgenerator.data.FunctionManager;
 import org.talend.designer.rowgenerator.data.FunctionManagerExt;
 import org.talend.expressionbuilder.i18n.Messages;
 import org.talend.expressionbuilder.model.Category;
@@ -316,10 +317,15 @@ public class CategoryComposite extends Composite {
                             ExpressionComposite expressionComposite = ExpressionBuilderDialog.getExpressionComposite();
                             if (expressionComposite != null && expressionComposite instanceof PigExpressionComposite) {
                                 if (function.isUserDefined()) {
-                                    expressionComposite.setExpression(JavaUtils.JAVA_PIGUDF_DIRECTORY + "." + function.getName()
-                                            + "()", true);
+                                    expressionComposite.setExpression(JavaUtils.JAVA_PIGUDF_DIRECTORY
+                                            + FunctionManager.JAVA_METHOD_SEPARATED + function.getName()
+                                            + FunctionManager.FUN_PREFIX + FunctionManager.FUN_SUFFIX, true);
+                                } else if ("Pig DataFu Functions".equals(function.getCategory())) {//$NON-NLS-1$
+                                    expressionComposite.setExpression(function.getClassName() + FunctionManager.FUN_PREFIX
+                                            + FunctionManager.FUN_SUFFIX, true);
                                 } else {
-                                    expressionComposite.setExpression(function.getName() + "()", true);
+                                    expressionComposite.setExpression(function.getName() + FunctionManager.FUN_PREFIX
+                                            + FunctionManager.FUN_SUFFIX, true);
                                 }
                             } else {
                                 expressionComposite.setExpression(FunctionManagerExt.getOneColData(column, false), true);

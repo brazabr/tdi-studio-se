@@ -1080,7 +1080,7 @@ public class Process extends Element implements IProcess2, IGEFProcess, ILastVer
                     param.setFieldType(EParameterFieldType.SURVIVOR_RELATION);
                     param.setNumRow(99);
                     param.setShow(false);
-                    param.setReadOnly(true);
+                    param.setReadOnly(false);
                     elemParam.addElementParameter(param);
                     param = null;
                     continue;

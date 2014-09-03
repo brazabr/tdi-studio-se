@@ -189,8 +189,9 @@ public class MapReduceJavaProcessor extends JavaProcessor {
         // IProcessor.NO_TRACES, JobExportType.POJO);
 
         // Now only support the JobExportType.POJO, means "Autonomous job".
-        JobScriptsManager jobScriptsManager = new MapReduceJobJavaScriptsManager(exportChoiceMap, processItem.getProcess()
-                .getDefaultContext(), JobScriptsManager.ALL_ENVIRONMENTS, IProcessor.NO_STATISTICS, IProcessor.NO_TRACES);
+        MapReduceJobJavaScriptsManager jobScriptsManager = new MapReduceJobJavaScriptsManager(exportChoiceMap, processItem
+                .getProcess().getDefaultContext(), JobScriptsManager.ALL_ENVIRONMENTS, IProcessor.NO_STATISTICS,
+                IProcessor.NO_TRACES);
         String codeOptions = null;
         List<ExportFileResource> exportResources = jobScriptsManager.getExportResources(exportFileResources, codeOptions);
 

@@ -10,14 +10,13 @@ imports="
 	org.talend.core.model.process.IProcess
 "
 %>
-
+<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/Log4j/DBLogUtil.javajet"%>
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
-	IProcess process = node.getProcess();
+	dbLog = new DBLogUtil(node);
 	String cid = node.getUniqueName();
 	boolean useExistingConnection = "true".equals(ElementParameterParser.getValue(node,"__USE_EXISTING_CONNECTION__"));
-	boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
 %>
 	<%
 	if(!useExistingConnection)
@@ -26,18 +25,13 @@ imports="
 		if(resourceMap.get("finish_<%=cid%>")==null){
 			if(resourceMap.get("conn_<%=cid%>")!=null){
 				try {
-					<%if(isLog4jEnabled){%>
-						log.info("<%=cid%> finally - Closing the connection to the database.");
-					<%}%>
+					<%dbLog.conn().closeTry(null);%>
 					((java.sql.Connection)resourceMap.get("conn_<%=cid%>")).close();
-					<%if(isLog4jEnabled){%>
-						log.info("<%=cid%> finally - Connection to the database closed.");
-					<%}%>
+					<%dbLog.conn().closeDone(null);%>
 				} catch (java.sql.SQLException sqlEx_<%=cid %>) {
-					<%if(isLog4jEnabled){%>
-						log.error("<%=cid%> finally - failed to close the connection in <%=cid %> :" + sqlEx_<%=cid %>.getMessage());
-					<%}%>
-					System.out.println("failed to close the connection in <%=cid %> :" + sqlEx_<%=cid %>.getMessage());
+					String errorMessage_<%=cid%> = "failed to close the connection in <%=cid %> :" + sqlEx_<%=cid %>.getMessage();
+					<%dbLog.logPrintedException(dbLog.var("errorMessage"));%>
+					System.err.println(errorMessage_<%=cid%>);
 				}
 			}
 		}

@@ -537,6 +537,20 @@ public class ComponentSettingsView extends ViewPart implements IComponentSetting
         super.setTitleToolTip(label);
     }
 
+    private boolean isMrGroupLine(Element elem) {
+        if (elem instanceof Connection) {
+            Connection con = (Connection) elem;
+            if (con.getSource() instanceof Node && con.getTarget() instanceof Node) {
+                Node nodeSource = (Node) con.getSource();
+                Node nodeTarget = (Node) con.getTarget();
+                if (nodeSource.getMrGroupId() != null && !nodeSource.getMrGroupId().equals(nodeTarget.getMrGroupId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * yzhang Comment method "getCategories".
      * 
@@ -554,12 +568,35 @@ public class ComponentSettingsView extends ViewPart implements IComponentSetting
                         && ((EConnectionType) propertyValue).hasConnectionCategory(IConnectionCategory.FLOW)) {
                     // if (((Connection) elem).checkTraceShowEnable()) {
                     final List<EComponentCategory> list = new ArrayList<EComponentCategory>(Arrays.asList(categories));
-                    list.add(EComponentCategory.BREAKPOINT);
+                    boolean isMRProcess = false;
+                    IProcess process = ((Connection) elem).getSource().getProcess();
+                    if (process instanceof IProcess2) {
+                        IProcess2 process2 = (IProcess2) process;
+                        if (ComponentCategory.CATEGORY_4_MAPREDUCE.getName().equals(process2.getComponentsType())) {
+                            isMRProcess = true;
+                        }
+                    }
+                    boolean isStormProcess = false;
+                    process = ((Connection) elem).getSource().getProcess();
+                    if (process instanceof IProcess2) {
+                        IProcess2 process2 = (IProcess2) process;
+                        if (ComponentCategory.CATEGORY_4_STORM.getName().equals(process2.getComponentsType())) {
+                            isStormProcess = true;
+                        }
+                    }
+                    // mrjob and stormjob not add breakpoint
+                    if (!isStormProcess && !isMRProcess) {
+                        list.add(EComponentCategory.BREAKPOINT);
+                    }
 
                     if (elem.getElementParameter(EParameterName.DEPARTITIONER.getName()) != null
                             || elem.getElementParameter(EParameterName.PARTITIONER.getName()) != null
                             || elem.getElementParameter(EParameterName.REPARTITIONER.getName()) != null) {
                         list.add(EComponentCategory.PARALLELIZATION);
+                    }
+                    // if it mr group line then add errorRecovery
+                    if (isMRProcess && isMrGroupLine(elem)) {
+                        list.add(EComponentCategory.RESUMING);
                     }
                     return list.toArray(new EComponentCategory[0]);
                     // }
@@ -578,12 +615,19 @@ public class ComponentSettingsView extends ViewPart implements IComponentSetting
                             isMRProcess = true;
                         }
                     }
+                    boolean isStormProcess = false;
+                    process = ((Connection) elem).getSource().getProcess();
+                    if (process instanceof IProcess2) {
+                        IProcess2 process2 = (IProcess2) process;
+                        if (ComponentCategory.CATEGORY_4_STORM.getName().equals(process2.getComponentsType())) {
+                            isStormProcess = true;
+                        }
+                    }
                     int length = categories.length;
                     EComponentCategory[] newCategories;
-                    // rusuming checkBox only for ON_SUBJOB_OK , modified by nma, order 8663
-                    // dont display Recovery tab on M/R for TDI-25789
                     boolean needAvoid = needAvoidRecovery(elem);
-                    if (propertyValue.equals(EConnectionType.ON_SUBJOB_OK) && !isMRProcess && !needAvoid) {
+                    if ((propertyValue.equals(EConnectionType.ON_SUBJOB_OK) && !isMRProcess && !needAvoid) || isMRProcess
+                            || isStormProcess) {
                         newCategories = new EComponentCategory[length + 1];
                         for (int i = 0; i < length; i++) {
                             newCategories[i] = categories[i];
